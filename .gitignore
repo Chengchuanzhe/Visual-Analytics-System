@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code 内部文件（不提交）
+CLAUDE.md
+
+# Office 临时文件
+~$*.docx
+~$*.xlsx
