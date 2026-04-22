@@ -1,0 +1,10 @@
+.pie-label {
+    font-size: 12px;
+    font-family: sans-serif;
+    fill: #333;
+    text-anchor: middle;
+}
+.pie-slice {
+    stroke: white;
+    stroke-width: 1.5px;
+}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>D3.js 散点图示例</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="chart"></div>
+    <div id="d3-tip"></div>
+    <script>
+        // ------------------- 1. 准备数据 -------------------
+        const data = [
+            { x: 10, y: 20 },
+            { x: 25, y: 35 },
+            { x: 40, y: 60 },
+            { x: 55, y: 45 },
+            { x: 70, y: 80 },
+            { x: 85, y: 70 },
+            { x: 100, y: 90 }
+        ];
+
+        // ------------------- 2. 设置画布尺寸与边距 -------------------
+        const margin = { top: 30, right: 30, bottom: 50, left: 60 };
+        const width = 600 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
+
+        // 创建 SVG 容器
+        const svg = d3.select("#chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")  // 添加一个分组 <g>，用来统一设置边距偏移
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+        // ------------------- 3. 定义比例尺 -------------------
+        // X 线性比例尺：将数据中的 x 值映射到 [0, width] 的屏幕坐标
+        const xScale = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.x)])   // 输入域：数据的最小/最大值
+            .range([0, width])                      // 输出范围：画布宽度
+            .nice();                                // 让坐标轴刻度更友好（取整）
+
+        // Y 线性比例尺：注意 SVG 的 Y 轴向下为正，所以 range 用 [height, 0] 实现翻转
+        const yScale = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.y)])
+            .range([height, 0])
+            .nice();
+
+        // ------------------- 4. 绘制坐标轴 -------------------
+        // 创建 X 轴（底部）
+        const xAxis = d3.axisBottom(xScale);
+        // 创建 Y 轴（左侧）
+        const yAxis = d3.axisLeft(yScale);
+
+        // 添加 X 轴到 SVG
+        svg.append("g")
+            .attr("transform", `translate(0, ${height})`)  // 将 X 轴移至底部
+            .call(xAxis)
+            .append("text")                                 // 添加 X 轴标签
+            .attr("x", width / 2)
+            .attr("y", 40)
+            .attr("fill", "black")
+            .attr("text-anchor", "middle")
+            .attr("class", "axis-label")
+            .text("X 轴数值");
+
+        // 添加 Y 轴
+        svg.append("g")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")               // 旋转文字方向
+            .attr("x", -height / 2)
+            .attr("y", -40)
+            .attr("fill", "black")
+            .attr("text-anchor", "middle")
+            .attr("class", "axis-label")
+            .text("Y 轴数值");
+        // ----------------------- 5.让图像可以交互-----------------
+        const tooltip = d3.select("#d3-tip")
+        // ------------------- 6. 绘制散点 -------------------
+        svg.selectAll("circle")           // 选择所有 circle（此时还不存在）
+            .data(data)                   // 绑定数据数组
+            .join("circle")               // 进入 + 更新 + 退出模式的简洁写法
+            .attr("cx", d => xScale(d.x)) // 使用比例尺计算圆心 X 坐标
+            .attr("cy", d => yScale(d.y)) // 使用比例尺计算圆心 Y 坐标
+            .attr("r", 6)                 // 圆的半径
+            .attr("class", "point")       // 添加 CSS 类，方便样式控制
+            .on("mouseenter", function(event, d) {
+                tooltip.html(`X: ${d.x}<br>Y: ${d.y}`)
+                        .style("display", "block");
+                updatePosition(event);
+            })
+            .on("mousemove", updatePosition)
+            .on("mouseleave", () => tooltip.style("display", "none"));
+
+        function updatePosition(event) {
+        // 获取鼠标相对于页面的坐标
+            const [x, y] = d3.pointer(event, document.body);
+            tooltip.style("left", (x + 15) + "px")
+                .style("top",  (y - 30) + "px");
+        }
+    </script>
+</body>
+</html>

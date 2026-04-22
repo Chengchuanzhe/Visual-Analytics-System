@@ -1,0 +1,30 @@
+.point {
+    fill: steelblue;
+    opacity: 0.7;
+}
+.point:hover {
+    fill: orange;
+    opacity: 1;
+}
+.axis-label {
+    font-size: 12px;
+    fill: #333;
+}
+#d3-tip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;      /* 避免遮挡鼠标事件 */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: opacity 0.2s;
+    opacity: 8; 
+    display: none;
+    white-space: nowrap;
+}
+#d3-tip.show {
+    display: block;
+    opacity: 1;
+}

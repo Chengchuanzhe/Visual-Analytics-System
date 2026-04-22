@@ -1,0 +1,9 @@
+#sankey-chart {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+}
+.node text {
+    font-size: 12px;
+    font-family: sans-serif;
+}
