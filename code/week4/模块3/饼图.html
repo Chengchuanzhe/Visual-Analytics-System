@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>D3.js 饼图示例</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="pie.css">
+</head>
+<body>
+    <svg width="500" height="400"></svg>
+
+    <script>
+        // 1. 数据：类别和对应的数值
+        const data = [
+            { category: "苹果", value: 30 },
+            { category: "香蕉", value: 20 },
+            { category: "橙子", value: 45 },
+            { category: "葡萄", value: 15 },
+            { category: "西瓜", value: 10 }
+        ];
+
+        // 2. 设置 SVG 尺寸和中心点
+        const width = 500, height = 400;
+        const radius = Math.min(width, height) / 2.2;  // 留出标签空间
+        const svg = d3.select("svg")
+                      .attr("viewBox", `0 0 ${width} ${height}`)
+                      .append("g")
+                      .attr("transform", `translate(${width/2}, ${height/2})`);
+
+        // 3. 颜色比例尺（使用 d3.scaleOrdinal）
+        const color = d3.scaleOrdinal()
+                        .domain(data.map(d => d.category))
+                        .range(d3.schemeTableau10);  // 预定义配色方案
+
+        // 4. 饼图布局生成器 —— 将原始数据转为带有角度信息的数组
+        const pie = d3.pie()
+                      .value(d => d.value)
+                      .sort(null);  // 保持原始顺序（可选）
+
+        const pieData = pie(data);  // 结果包含 startAngle, endAngle, padAngle, value 等
+
+        // 5. 弧生成器 —— 根据角度信息生成 SVG 路径字符串
+        const arcGenerator = d3.arc()
+                               .innerRadius(0)          // 0 表示饼图，大于 0 为环形图
+                               .outerRadius(radius * 0.8); // 外半径稍小，留出标签空间
+
+        // 用于标签放置的弧生成器（半径稍大，将标签放在饼图外侧）
+        const labelArc = d3.arc()
+                           .innerRadius(radius * 0.9)
+                           .outerRadius(radius * 0.9);
+
+        // 6. 绘制扇形路径（饼图的每一个切片）
+        svg.selectAll("path")
+           .data(pieData)
+           .join("path")
+           .attr("class", "pie-slice")
+           .attr("d", arcGenerator)          // 使用弧生成器生成路径
+           .attr("fill", d => color(d.data.category))
+           .attr("stroke", "white")
+           .attr("stroke-width", 1.5);
+
+        // 7. 添加文字标签（显示类别名称和百分比）
+        svg.selectAll("text")
+           .data(pieData)
+           .join("text")
+           .attr("class", "pie-label")
+           .attr("transform", d => `translate(${labelArc.centroid(d)})`)  // 定位到弧的中心外侧
+           .text(d => {
+               const percent = (d.data.value / d3.sum(data, d => d.value) * 100).toFixed(1);
+               return `${d.data.category} ${percent}%`;
+           })
+           .style("text-anchor", "middle")
+           .style("font-size", "12px")
+           .style("fill", "#333");
+
+        // 可选：添加一条连接线从切片指向标签（当标签较多时可以避免重叠）
+        // 此处省略，如需实现可再扩展
+        svg.selectAll("path")
+        .on("mouseover", function(event, d) {
+            d3.select(this)
+                .attr("opacity", 0.7)
+                .attr("transform", "scale(1.02)");  // 轻微放大
+        })
+        .on("mouseout", function(event, d) {
+            d3.select(this)
+                .attr("opacity", 1)
+                .attr("transform", "scale(1)");
+        });
+    </script>
+</body>
+</html>

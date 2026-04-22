@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>D3.js 桑基图教程</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+     <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <link rel="stylesheet" href="sang.css">
+</head>
+<body>
+    <div id="sankey-chart"></div>
+    <script>
+        (function() {
+            // 1. 准备数据
+            const nodes = [
+                { name: "黑色" }, { name: "金色" }, { name: "棕色" }, { name: "红色" },
+                { name: "黑色染发后" }, { name: "金色染发后" },
+                { name: "棕色染发后" }, { name: "红色染发后" }
+            ];
+
+            const links = [
+                { source: 0, target: 4, value: 11975 },
+                { source: 0, target: 5, value: 5871 },
+                { source: 0, target: 6, value: 8916 },
+                { source: 0, target: 7, value: 2868 },
+                { source: 1, target: 4, value: 1951 },
+                { source: 1, target: 5, value: 10048 },
+                { source: 1, target: 6, value: 2060 },
+                { source: 1, target: 7, value: 6171 },
+                { source: 2, target: 4, value: 8010 },
+                { source: 2, target: 5, value: 16145 },
+                { source: 2, target: 6, value: 8090 },
+                { source: 2, target: 7, value: 8045 },
+                { source: 3, target: 4, value: 1013 },
+                { source: 3, target: 5, value: 990 },
+                { source: 3, target: 6, value: 940 },
+                { source: 3, target: 7, value: 6907 }
+            ];
+
+            // 2. 设置画布
+            const width = 960;
+            const height = 500;
+
+            const svg = d3.select("#sankey-chart")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("viewBox", [0, 0, width, height]);
+
+            // 3. 创建并配置桑基图生成器
+            const sankeyGenerator = d3.sankey()
+                .nodeWidth(24)       // 节点宽度
+                .nodePadding(12)     // 节点间距
+                .size([width, height]);
+
+            // 4. 执行布局计算
+            const graph = sankeyGenerator({
+                nodes: nodes.map(d => Object.assign({}, d)),
+                links: links.map(d => Object.assign({}, d))
+            });
+
+            // 5. 设置颜色比例尺
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+            // 6. 绘制链接
+            svg.append("g")
+                .attr("fill", "none")
+                .attr("stroke-opacity", 0.4)
+                .selectAll("path")
+                .data(graph.links)
+                .join("path")
+                .attr("d", d3.sankeyLinkHorizontal())
+                .attr("stroke", d => color(d.source.index))
+                .attr("stroke-width", d => Math.max(1, d.width));
+
+            // 7. 绘制节点
+            svg.append("g")
+                .selectAll("rect")
+                .data(graph.nodes)
+                .join("rect")
+                .attr("x", d => d.x0)
+                .attr("y", d => d.y0)
+                .attr("height", d => d.y1 - d.y0)
+                .attr("width", d => d.x1 - d.x0)
+                .attr("fill", d => color(d.index))
+                .attr("opacity", 0.8);
+
+            // 8. 绘制标签
+            svg.append("g")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", 12)
+                .selectAll("text")
+                .data(graph.nodes)
+                .join("text")
+                .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
+                .attr("y", d => (d.y0 + d.y1) / 2)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
+                .text(d => d.name);
+        })();
+    </script>
+</body>
+</html>
