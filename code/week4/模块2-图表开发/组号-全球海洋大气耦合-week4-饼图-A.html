@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>全球海洋-大气耦合 · 各海域数据分布饼图</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      padding: 32px 40px;
+      width: 780px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #1a2b4a;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #7a8fa6;
+      margin-bottom: 24px;
+    }
+
+    .chart-area {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    #pie-svg { flex-shrink: 0; }
+
+    /* 图例 */
+    .legend { flex: 1; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #2d3e50;
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .legend-label { flex: 1; }
+    .legend-value { font-weight: 600; color: #1a2b4a; }
+    .legend-pct   { color: #7a8fa6; margin-left: 4px; }
+
+    /* Tooltip */
+    #tooltip {
+      position: fixed;
+      background: rgba(20, 40, 70, 0.92);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 220px;
+    }
+    #tooltip strong { font-size: 14px; display: block; margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>全球海洋-大气耦合数据集 · 各海域样本分布</h2>
+  <p class="subtitle">数据来源：IFREMER Argo 浮标实测（2020–2022）· 总记录数：3600 条</p>
+  <div class="chart-area">
+    <svg id="pie-svg"></svg>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+// ── Okabe-Ito 色盲友好配色（6色）──────────────────────────────
+const COLOR = {
+  "太平洋":   "#0077BB",
+  "大西洋":   "#33BBEE",
+  "印度洋":   "#009988",
+  "北极海域": "#EE7733",
+  "南极海域": "#CC3311",
+  "赤道区域": "#EE3377",
+};
+
+const W = 320, H = 320, R = 130, R_INNER = 58;
+
+const svg = d3.select("#pie-svg")
+  .attr("width", W)
+  .attr("height", H);
+
+const g = svg.append("g")
+  .attr("transform", `translate(${W/2},${H/2})`);
+
+const tooltip = d3.select("#tooltip");
+
+// ── 数据加载 ──────────────────────────────────────────────────
+const DATA_PATH = "../../../data/组号-全球海洋大气耦合-实验2-选题扩展数据集.json";
+
+d3.json(DATA_PATH).then(data => {
+  // 按海域统计记录数
+  const counts = d3.rollup(data, v => v.length, d => d.region);
+  const total  = data.length;
+
+  const pieData = Array.from(counts, ([region, count]) => ({ region, count }))
+    .sort((a, b) => b.count - a.count);
+
+  render(pieData, total);
+}).catch(() => {
+  // 无法加载文件时用内嵌示例数据（直接双击打开时触发）
+  const fallback = [
+    { region: "太平洋",   count: 600 },
+    { region: "大西洋",   count: 600 },
+    { region: "印度洋",   count: 600 },
+    { region: "北极海域", count: 600 },
+    { region: "南极海域", count: 600 },
+    { region: "赤道区域", count: 600 },
+  ];
+  render(fallback, 3600);
+});
+
+function render(pieData, total) {
+  const pie = d3.pie().value(d => d.count).sort(null);
+  const arc = d3.arc().innerRadius(R_INNER).outerRadius(R);
+  const arcHover = d3.arc().innerRadius(R_INNER).outerRadius(R + 12);
+  const arcLabel = d3.arc().innerRadius(R + 22).outerRadius(R + 22);
+
+  const arcs = g.selectAll("path")
+    .data(pie(pieData))
+    .join("path")
+      .attr("d", arc)
+      .attr("fill", d => COLOR[d.data.region] || "#aaa")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2)
+      .style("cursor", "pointer")
+      .style("transition", "d 0.2s");
+
+  // ── 数据标签（百分比）──────────────────────────────────────
+  g.selectAll("text.pct-label")
+    .data(pie(pieData))
+    .join("text")
+      .attr("class", "pct-label")
+      .attr("transform", d => `translate(${arcLabel.centroid(d)})`)
+      .attr("text-anchor", "middle")
+      .attr("dy", "0.35em")
+      .attr("font-size", "12px")
+      .attr("fill", "#2d3e50")
+      .attr("font-weight", "600")
+      .text(d => {
+        const pct = (d.data.count / total * 100).toFixed(1);
+        return pct > 4 ? `${pct}%` : "";   // 扇区太小不显示
+      });
+
+  // 中心文字
+  g.append("text")
+    .attr("text-anchor", "middle").attr("dy", "-0.2em")
+    .attr("font-size", "13px").attr("fill", "#7a8fa6")
+    .text("总记录数");
+  g.append("text")
+    .attr("text-anchor", "middle").attr("dy", "1.2em")
+    .attr("font-size", "20px").attr("font-weight", "700").attr("fill", "#1a2b4a")
+    .text(total.toLocaleString());
+
+  // ── 交互：悬浮 ───────────────────────────────────────────
+  arcs
+    .on("mousemove", function(event, d) {
+      d3.select(this).attr("d", arcHover);
+      const pct = (d.data.count / total * 100).toFixed(1);
+      tooltip
+        .style("opacity", 1)
+        .style("left", (event.clientX + 14) + "px")
+        .style("top",  (event.clientY - 10) + "px")
+        .html(`<strong>${d.data.region}</strong>
+               记录数：${d.data.count.toLocaleString()} 条<br>
+               占比：${pct}%`);
+    })
+    .on("mouseleave", function() {
+      d3.select(this).attr("d", arc);
+      tooltip.style("opacity", 0);
+    });
+
+  // ── 图例 ─────────────────────────────────────────────────
+  const legendEl = document.getElementById("legend");
+  pieData.forEach(d => {
+    const pct = (d.count / total * 100).toFixed(1);
+    legendEl.innerHTML += `
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:${COLOR[d.region] || '#aaa'}"></div>
+        <span class="legend-label">${d.region}</span>
+        <span class="legend-value">${d.count.toLocaleString()}</span>
+        <span class="legend-pct">(${pct}%)</span>
+      </div>`;
+  });
+}
+</script>
+</body>
+</html>
