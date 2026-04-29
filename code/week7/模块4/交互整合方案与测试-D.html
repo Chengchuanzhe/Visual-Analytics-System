@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>交互整合方案与测试报告 · Week 7</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      background: #f5f7fa; color: #2d3e50; line-height: 1.7;
+      padding: 40px 20px;
+    }
+    .container { max-width: 980px; margin: 0 auto; }
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px 36px; margin-bottom: 24px;
+    }
+    h1 { font-size: 24px; color: #1a2b4a; margin-bottom: 4px; }
+    h2 { font-size: 18px; color: #1a2b4a; margin: 28px 0 14px;
+         padding-bottom: 8px; border-bottom: 2px solid #e8ecf1; }
+    h3 { font-size: 15px; color: #1a2b4a; margin: 18px 0 8px; }
+    .meta { font-size: 13px; color: #7a8fa6; margin-bottom: 20px; }
+
+    table {
+      width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px;
+    }
+    th, td { border: 1px solid #e0e6ed; padding: 8px 14px; text-align: left; }
+    th { background: #f5f7fa; font-weight: 700; color: #1a2b4a; font-size: 12px; }
+
+    .pass { color: #155724; background: #d4edda; font-weight: 700; text-align: center; }
+    .warn { color: #856404; background: #fff3cd; text-align: center; }
+    .fail { color: #721c24; background: #f8d7da; text-align: center; }
+
+    .highlight-box {
+      background: #e8f4fd; border-left: 4px solid #0072B2;
+      padding: 16px 20px; border-radius: 4px; margin: 16px 0; font-size: 14px;
+    }
+
+    .diagram {
+      background: #fafbfc; border: 1px solid #e0e6ed;
+      border-radius: 8px; padding: 24px; margin: 16px 0;
+      text-align: center; font-family: monospace; font-size: 12px;
+      line-height: 2.2; white-space: pre;
+    }
+
+    .interaction-flow {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; margin: 12px 0; font-size: 13px;
+    }
+    .flow-node {
+      padding: 6px 14px; border-radius: 8px; font-weight: 600;
+      background: #f0f4f8; border: 1.5px solid #c8d6e5;
+    }
+    .flow-arrow { color: #7a8fa6; font-size: 16px; }
+
+    .conflict-item {
+      background: #fff8e1; border-left: 4px solid #ffc107;
+      padding: 12px 16px; border-radius: 4px; margin: 8px 0; font-size: 13px;
+    }
+    .conflict-item.resolved {
+      background: #d5f5e3; border-left-color: #28a745;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="card">
+    <h1>实验 2 · 交互整合方案与测试报告</h1>
+    <p class="meta">
+      成员 D · 主责 &nbsp;|&nbsp; 全员协同 &nbsp;|&nbsp; Week 7
+      &nbsp;|&nbsp; 范围：全部 6 类图表
+    </p>
+    <div class="highlight-box">
+      <strong>报告目的：</strong>统一全部图表的交互行为规范，测试多图表交互一致性，
+      排查交互冲突，确保从单一图表到多图表组合的用户体验一致。
+    </div>
+  </div>
+
+  <!-- ===== 1. 统一交互规范 ===== -->
+  <div class="card">
+    <h2>1. 统一交互行为规范</h2>
+
+    <h3>1.1 交互事件矩阵</h3>
+    <table>
+      <thead>
+        <tr><th>交互行为</th><th>饼图</th><th>散点图</th><th>气泡图</th><th>雷达图</th><th>桑基图</th><th>平行坐标图</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>悬浮高亮</strong></td>
+          <td>扇区放大 + opacity↑</td>
+          <td>圆点加大 + 描边</td>
+          <td>气泡突出 + 描边</td>
+          <td>多边形填充↑</td>
+          <td>流带 opacity↑</td>
+          <td>折线加粗 + opacity↑</td>
+        </tr>
+        <tr>
+          <td><strong>悬浮调暗非目标</strong></td>
+          <td>✗ 不适用</td>
+          <td>✓ 其余点 dim</td>
+          <td>✓ 其余点 dim</td>
+          <td>✗ 不适用</td>
+          <td>✓ 其余流带 dim</td>
+          <td>✓ 其余折线 dim</td>
+        </tr>
+        <tr>
+          <td><strong>点击筛选</strong></td>
+          <td>✗</td>
+          <td>✗</td>
+          <td>✗</td>
+          <td>海域图例切换</td>
+          <td>节点高亮关联</td>
+          <td>图例海域 + 轴刷选</td>
+        </tr>
+        <tr>
+          <td><strong>Tooltip</strong></td>
+          <td>✓ 数据+占比</td>
+          <td>✓ 维度值</td>
+          <td>✓ 三维度值</td>
+          <td>✓ 多维度值</td>
+          <td>✓ 流向+记录数</td>
+          <td>✓ 全维度值</td>
+        </tr>
+        <tr>
+          <td><strong>维度切换</strong></td>
+          <td>✗</td>
+          <td>下拉 X/Y</td>
+          <td>下拉 X/Y/Size</td>
+          <td>维度芯片</td>
+          <td>✗</td>
+          <td>维度芯片 + 轴刷选</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>1.2 统一交互参数</h3>
+    <table>
+      <thead>
+        <tr><th>参数</th><th>标准值</th><th>适用范围</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>默认透明度 (fill-opacity)</td><td>0.60 ~ 0.85</td><td>所有图表元素</td></tr>
+        <tr><td>高亮透明度</td><td>0.90 ~ 1.00</td><td>悬浮/选中态</td></tr>
+        <tr><td>调暗透明度 (dim)</td><td>0.06 ~ 0.12</td><td>非目标元素</td></tr>
+        <tr><td>过渡动画时长</td><td>0.20 ~ 0.25s ease</td><td>所有过渡效果</td></tr>
+        <tr><td>Tooltip 背景色</td><td>rgba(20,40,70,0.92)</td><td>全局统一</td></tr>
+        <tr><td>Tooltip 字体</td><td>13px, #fff, sans-serif</td><td>全局统一</td></tr>
+        <tr><td>Tooltip 偏移</td><td>(clientX+14, clientY-10)</td><td>全局统一</td></tr>
+        <tr><td>高亮描边色</td><td>#222</td><td>悬浮态</td></tr>
+        <tr><td>高亮描边宽</td><td>2.0 ~ 2.5px</td><td>悬浮态</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 2. 多图表交互联动方案 ===== -->
+  <div class="card">
+    <h2>2. 多图表交互联动方案（Week 10 预留）</h2>
+
+    <h3>2.1 联动架构</h3>
+    <div class="diagram">
+┌─────────────────────────────────────────────────────────┐
+│                    EventBus (全局事件总线)                 │
+│  ┌──────────┬──────────┬──────────┬──────────────────┐  │
+│  │region:   │time:     │filter:   │highlight:        │  │
+│  │select    │select    │change    │record            │  │
+│  └──────────┴──────────┴──────────┴──────────────────┘  │
+│        │          │          │            │              │
+│   ┌────┴────┬─────┴─────┬────┴─────┬──────┴──────┐      │
+│   │ 饼图     │ 散点图    │ 雷达图    │ 平行坐标图   │      │
+│   │ (A)     │ (B)       │ (B)      │ (C)         │      │
+│   └─────────┴───────────┴──────────┴─────────────┘      │
+└─────────────────────────────────────────────────────────┘
+    </div>
+
+    <h3>2.2 联动场景</h3>
+    <table>
+      <thead>
+        <tr><th>触发图表</th><th>交互</th><th>联动效果</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>饼图</td>
+          <td>点击海域扇区</td>
+          <td>散点图/气泡图/雷达图/平行坐标图仅显示该海域数据</td>
+        </tr>
+        <tr>
+          <td>平行坐标图</td>
+          <td>轴刷选温度 25-30°C</td>
+          <td>桑基图仅显示落入该温度区间的流向</td>
+        </tr>
+        <tr>
+          <td>雷达图</td>
+          <td>图例切换海域</td>
+          <td>气泡图同步高亮对应海域颜色</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>2.3 联动实现策略</h3>
+    <div class="highlight-box">
+      <strong>技术方案：</strong>Week 10 前端原型中引入简易发布-订阅模式。
+      各图表注册为 listener，用户交互时发布事件，其余图表响应。<br><br>
+      <code style="font-size:12px;">
+        // 发布：EventBus.emit("region:select", { region: "太平洋" });<br>
+        // 订阅：EventBus.on("region:select", ({ region }) =&gt; filterByRegion(region));
+      </code>
+    </div>
+  </div>
+
+  <!-- ===== 3. 交互一致性测试 ===== -->
+  <div class="card">
+    <h2>3. 交互一致性测试报告</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>测试项</th><th>图表</th><th>预期行为</th><th>结果</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td><td>Tooltip 延迟</td><td>全部 6 类</td><td>悬浮 &lt;100ms 出现</td><td class="pass">✓</td>
+        </tr>
+        <tr>
+          <td>2</td><td>Tooltip 外观一致</td><td>全部 6 类</td><td>同色底、同字号、同圆角</td><td class="warn">⚠</td>
+        </tr>
+        <tr>
+          <td>3</td><td>悬浮高亮颜色</td><td>散点/气泡/平行坐标</td><td>描边 #222, 宽度 2-2.5px</td><td class="pass">✓</td>
+        </tr>
+        <tr>
+          <td>4</td><td>调暗透明度</td><td>散点/气泡/桑基/平行坐标</td><td>0.06-0.12 范围</td><td class="pass">✓</td>
+        </tr>
+        <tr>
+          <td>5</td><td>过渡动画</td><td>全部 6 类</td><td>0.2-0.25s ease</td><td class="warn">⚠</td>
+        </tr>
+        <tr>
+          <td>6</td><td>海域颜色一致</td><td>全部 6 类</td><td>同海域同 Hex 值</td><td class="pass">✓</td>
+        </tr>
+        <tr>
+          <td>7</td><td>图例样式</td><td>全部 6 类</td><td>统一色块/线段样式</td><td class="warn">⚠</td>
+        </tr>
+        <tr>
+          <td>8</td><td>数据路径</td><td>全部 6 类</td><td>使用 Adapter 或统一路径</td><td class="pass">✓</td>
+        </tr>
+        <tr>
+          <td>9</td><td>错误处理</td><td>全部 6 类</td><td>数据加载失败有友好提示</td><td class="pass">✓</td>
+        </tr>
+        <tr>
+          <td>10</td><td>3000+ 条渲染性能</td><td>平行坐标图</td><td>&lt;500ms 首屏渲染</td><td class="pass">✓</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size:12px;color:#7a8fa6;margin-top:8px;">
+      ⚠ 标记项说明：部分早期图表（Week 4 饼图/散点图/桑基图示例）使用了硬编码样式，
+      未引用 type.css 变量。Week 8-9 视觉统一阶段将统一修正。
+    </p>
+  </div>
+
+  <!-- ===== 4. 交互冲突排查 ===== -->
+  <div class="card">
+    <h2>4. 交互冲突排查与整改</h2>
+
+    <div class="conflict-item">
+      <strong>[冲突 C1]</strong> 平行坐标图轴刷选 + 图例海域筛选同时生效时，
+      筛选逻辑为 AND——仅同时满足两个条件的数据可见。
+      <br><strong>状态：已确认 · 行为正确</strong>，在工具栏添加了筛选状态指示器。
+    </div>
+
+    <div class="conflict-item">
+      <strong>[冲突 C2]</strong> 气泡图/散点图维度下拉切换时，tooltip 可能在旧数据上残留。
+      <br><strong>状态：已确认</strong>，更新时 tooltip 强制 opacity=0。
+    </div>
+
+    <div class="conflict-item resolved">
+      <strong>[冲突 C3] 已解决</strong> — 雷达图图例点击和维度芯片切换同时触发时，
+      出现短暂闪烁。
+      <br><strong>整改：</strong>延迟执行 `render()` 到下一个微任务，
+      避免同步重绘冲突。
+    </div>
+
+    <div class="conflict-item resolved">
+      <strong>[冲突 C4] 已解决</strong> — 桑基图 d3-sankey 节点拖动与悬浮高亮冲突。
+      <br><strong>整改：</strong>禁用节点拖动（d3-sankey 默认无拖动），
+      仅保留悬浮高亮交互。
+    </div>
+  </div>
+
+  <!-- ===== 5. 交互代码规范 ===== -->
+  <div class="card">
+    <h2>5. 交互代码规范（成员D 制定）</h2>
+
+    <h3>5.1 交互函数命名约定</h3>
+    <table>
+      <thead><tr><th>前缀</th><th>含义</th><th>示例</th></tr></thead>
+      <tbody>
+        <tr><td><code>on</code></td><td>事件处理器</td><td><code>onHoverEnter</code>, <code>onClickLegend</code></td></tr>
+        <tr><td><code>show</code></td><td>显示 UI</td><td><code>showTooltip</code>, <code>showFilterStatus</code></td></tr>
+        <tr><td><code>update</code></td><td>更新状态</td><td><code>updateChart</code>, <code>updateLegend</code></td></tr>
+        <tr><td><code>reset</code></td><td>重置状态</td><td><code>resetFilters</code>, <code>resetSelection</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>5.2 状态管理</h3>
+    <pre style="background:#2d3748;color:#e2e8f0;padding:16px 20px;border-radius:8px;font-size:12px;line-height:1.6;margin:10px 0;">
+<span style="color:#a0aec0;">// 每个图表维护自己的状态对象（推荐模式）</span>
+<span style="color:#fbd38d;">const</span> state = {
+  activeRegion: <span style="color:#fbd38d;">null</span>,      <span style="color:#a0aec0;">// 当前选中的海域</span>
+  hiddenRegions: <span style="color:#fbd38d;">new</span> Set(),  <span style="color:#a0aec0;">// 隐藏的海域集合</span>
+  brushFilters:  {},          <span style="color:#a0aec0;">// 轴刷选范围</span>
+  useSampling:   <span style="color:#fbd38d;">true</span>,       <span style="color:#a0aec0;">// 是否采样模式</span>
+  activeDims:    [],          <span style="color:#a0aec0;">// 当前维度列表</span>
+};
+    </pre>
+
+    <h3>5.3 向后兼容</h3>
+    <div class="highlight-box">
+      所有图表的内联 style 和 class 名称保持不变。Week 10 原型组装时，
+      通过统一的 CSS 文件（type.css）和共享 JS（data-adapter.js, interaction.js）
+      实现样式和行为覆盖，无需修改各图表核心逻辑。
+    </div>
+  </div>
+
+</div>
+
+<script>
+console.log(
+  "%c交互整合方案与测试文档加载完成%c | 成员 D · Week 7",
+  "color:#CC79A7;font-weight:bold;", "color:#666;"
+);
+</script>
+</body>
+</html>

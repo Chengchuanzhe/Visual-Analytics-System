@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>全球海洋-大气耦合 · 多维散点图</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      padding: 28px 32px 24px;
+      width: 960px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #1a2b4a;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #7a8fa6;
+      margin-bottom: 16px;
+    }
+
+    /* 控制面板 */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-group label {
+      font-size: 13px;
+      color: #2d3e50;
+      font-weight: 600;
+    }
+
+    .control-group select {
+      padding: 5px 10px;
+      border: 1px solid #c8d6e5;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #2d3e50;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .control-group select:focus {
+      border-color: #0077BB;
+      box-shadow: 0 0 0 2px rgba(0,119,187,0.15);
+    }
+
+    #record-count {
+      font-size: 12px;
+      color: #7a8fa6;
+      margin-left: auto;
+    }
+
+    /* 图表区 */
+    .chart-area {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    #scatter-svg { flex-shrink: 0; }
+
+    /* 图例 */
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 40px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #2d3e50;
+    }
+    .legend-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      opacity: 0.85;
+    }
+    .legend-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a2b4a;
+      margin-bottom: 2px;
+    }
+
+    /* Tooltip */
+    #tooltip {
+      position: fixed;
+      background: rgba(20, 40, 70, 0.92);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 240px;
+      z-index: 9999;
+    }
+    #tooltip strong { font-size: 14px; display: block; margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>全球海洋-大气耦合 · 多维散点图</h2>
+  <p class="subtitle">数据来源：IFREMER Argo 浮标实测 + ERA5 气候估算（2020–2022）· 可切换维度探索耦合关系</p>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="x-select">X 轴:</label>
+      <select id="x-select"></select>
+    </div>
+    <div class="control-group">
+      <label for="y-select">Y 轴:</label>
+      <select id="y-select"></select>
+    </div>
+    <div class="control-group">
+      <label for="size-select">大小:</label>
+      <select id="size-select"></select>
+    </div>
+    <span id="record-count"></span>
+  </div>
+
+  <div class="chart-area">
+    <svg id="scatter-svg"></svg>
+    <div class="legend">
+      <div class="legend-title">海域</div>
+      <div id="legend-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+// ────────────────────────────────────────────────────────────────
+//  成员 B | Week 4 模块2  |  散点图（交互式多维探索）
+//
+//  功能：
+//    1. X/Y 轴下拉选择 — 自由探索不同变量对的关系
+//    2. 气泡大小映射第三变量
+//    3. 颜色区分 6 大海域
+//    4. 悬浮 tooltip 显示完整维度数值
+//    5. 图例 + 坐标轴 + 网格线
+// ────────────────────────────────────────────────────────────────
+
+// Okabe-Ito 色盲友好配色 —— 与团队视觉规范一致
+const REGION_COLORS = {
+  "太平洋":   "#0072B2",
+  "大西洋":   "#009E73",
+  "印度洋":   "#F0E442",
+  "北极海域": "#56B4E9",
+  "南极海域": "#CC79A7",
+  "赤道区域": "#E69F00"
+};
+
+// 可选的维度
+const DIM_OPTIONS = [
+  { key: "sst",            label: "海表温度 SST (°C)" },
+  { key: "salinity",       label: "盐度 (PSU)" },
+  { key: "wind_speed",     label: "风速 (km/h)" },
+  { key: "wind_dir",       label: "风向 (°)" },
+  { key: "pressure",       label: "海平面气压 (hPa)" },
+  { key: "precipitation",  label: "降水量 (mm)" },
+  { key: "co2",            label: "CO₂ 浓度 (ppm)" },
+  { key: "wave_height",    label: "浪高 (m)" },
+  { key: "humidity",       label: "大气湿度 (%)" },
+  { key: "current_speed",  label: "海流速度 (m/s)" },
+  { key: "chlorophyll",    label: "叶绿素浓度 (mg/m³)" }
+];
+
+// 默认选择：经典海洋-大气耦合变量对
+const DEFAULTS = { x: "sst", y: "humidity", size: "wind_speed" };
+
+// SVG 尺寸
+const W = 740, H = 480;
+const MARGIN = { top: 24, right: 24, bottom: 56, left: 60 };
+const IW = W - MARGIN.left - MARGIN.right;
+const IH = H - MARGIN.top - MARGIN.bottom;
+
+// ── 初始化 SVG ──────────────────────────────────────────────────
+const svg = d3.select("#scatter-svg")
+  .attr("width", W).attr("height", H);
+
+const g = svg.append("g")
+  .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
+
+// 裁剪区
+svg.append("defs").append("clipPath")
+  .attr("id", "clip")
+  .append("rect")
+    .attr("width", IW).attr("height", IH);
+
+const clipG = g.append("g").attr("clip-path", "url(#clip)");
+
+// 网格线组
+const gridG = g.append("g").attr("class", "grid");
+// 点组
+const pointsG = clipG.append("g");
+// 轴组
+const xAxisG = g.append("g").attr("transform", `translate(0,${IH})`);
+const yAxisG = g.append("g");
+
+// X/Y 轴标签
+const xLabel = g.append("text")
+  .attr("class", "axis-label")
+  .attr("text-anchor", "middle")
+  .attr("x", IW / 2).attr("y", IH + 42)
+  .attr("font-size", "13px").attr("fill", "#2d3e50");
+
+const yLabel = g.append("text")
+  .attr("class", "axis-label")
+  .attr("text-anchor", "middle")
+  .attr("transform", `rotate(-90)`)
+  .attr("x", -IH / 2).attr("y", -44)
+  .attr("font-size", "13px").attr("fill", "#2d3e50");
+
+const tooltip = d3.select("#tooltip");
+
+// ── 数据 ────────────────────────────────────────────────────────
+const DATA_PATH = "../../../data/组号-全球海洋大气耦合-实验2-选题扩展数据集.json";
+
+let fullData = [];
+
+// 初始化下拉菜单
+function initSelects() {
+  const xSel = d3.select("#x-select");
+  const ySel = d3.select("#y-select");
+  const sSel = d3.select("#size-select");
+
+  DIM_OPTIONS.forEach(d => {
+    xSel.append("option").attr("value", d.key).text(d.label);
+    ySel.append("option").attr("value", d.key).text(d.label);
+    sSel.append("option").attr("value", d.key).text(d.label);
+  });
+
+  xSel.property("value", DEFAULTS.x);
+  ySel.property("value", DEFAULTS.y);
+  sSel.property("value", DEFAULTS.size);
+
+  xSel.on("change", () => updateChart(xSel.property("value"), ySel.property("value"), sSel.property("value")));
+  ySel.on("change", () => updateChart(xSel.property("value"), ySel.property("value"), sSel.property("value")));
+  sSel.on("change", () => updateChart(xSel.property("value"), ySel.property("value"), sSel.property("value")));
+}
+
+// 核心渲染
+function updateChart(xKey, yKey, sizeKey) {
+  // 过滤有效数据
+  const clean = fullData.filter(d =>
+    d[xKey] != null && isFinite(d[xKey]) &&
+    d[yKey] != null && isFinite(d[yKey]) &&
+    d[sizeKey] != null && isFinite(d[sizeKey])
+  );
+
+  d3.select("#record-count").text(`渲染 ${clean.length} / ${fullData.length} 条`);
+
+  // 比例尺
+  const xExt = d3.extent(clean, d => d[xKey]);
+  const yExt = d3.extent(clean, d => d[yKey]);
+  const sExt = d3.extent(clean, d => d[sizeKey]);
+
+  const xPad = (xExt[1] - xExt[0]) * 0.05;
+  const yPad = (yExt[1] - yExt[0]) * 0.05;
+
+  const xScale = d3.scaleLinear()
+    .domain([xExt[0] - xPad, xExt[1] + xPad]).range([0, IW]);
+  const yScale = d3.scaleLinear()
+    .domain([yExt[0] - yPad, yExt[1] + yPad]).range([IH, 0]);
+  const rScale = d3.scaleSqrt()
+    .domain(sExt).range([3, 14]);
+
+  // 轴
+  const xAxis = d3.axisBottom(xScale).ticks(8).tickFormat(d3.format(".3s"));
+  const yAxis = d3.axisLeft(yScale).ticks(8).tickFormat(d3.format(".3s"));
+
+  xAxisG.call(xAxis);
+  yAxisG.call(yAxis);
+
+  // 网格线
+  gridG.selectAll("*").remove();
+  gridG.append("g")
+    .attr("class", "grid")
+    .call(d3.axisLeft(yScale).ticks(8).tickSize(-IW).tickFormat(""));
+  gridG.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(0,${IH})`)
+    .call(d3.axisBottom(xScale).ticks(8).tickSize(-IH).tickFormat(""));
+
+  // 更新轴标签
+  const xDim = DIM_OPTIONS.find(d => d.key === xKey);
+  const yDim = DIM_OPTIONS.find(d => d.key === yKey);
+  xLabel.text(xDim ? xDim.label : xKey);
+  yLabel.text(yDim ? yDim.label : yKey);
+
+  // 绑定数据 → 圆点
+  const circles = pointsG.selectAll("circle").data(clean, d => d.id);
+
+  circles.join(
+    enter => enter.append("circle")
+      .attr("r", d => rScale(d[sizeKey]))
+      .attr("cx",  d => xScale(d[xKey]))
+      .attr("cy",  d => yScale(d[yKey]))
+      .attr("fill", d => REGION_COLORS[d.region] || "#999")
+      .attr("fill-opacity", 0.65)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.5)
+      .style("cursor", "pointer")
+      .on("mouseenter", function(event, d) {
+        d3.select(this)
+          .attr("fill-opacity", 1)
+          .attr("stroke-width", 2)
+          .attr("stroke", "#333");
+        tooltip.style("opacity", 1)
+          .html(formatTooltip(d, xKey, yKey, sizeKey));
+      })
+      .on("mousemove", event => {
+        tooltip.style("left", (event.clientX + 14) + "px")
+               .style("top",  (event.clientY - 10) + "px");
+      })
+      .on("mouseleave", function() {
+        d3.select(this)
+          .attr("fill-opacity", 0.65)
+          .attr("stroke-width", 0.5)
+          .attr("stroke", "#fff");
+        tooltip.style("opacity", 0);
+      }),
+    update => update
+      .attr("r", d => rScale(d[sizeKey]))
+      .attr("cx",  d => xScale(d[xKey]))
+      .attr("cy",  d => yScale(d[yKey]))
+      .attr("fill", d => REGION_COLORS[d.region] || "#999"),
+    exit => exit.remove()
+  );
+
+  // 更新图例
+  const legendList = d3.select("#legend-list");
+  legendList.html("");
+  Object.entries(REGION_COLORS).forEach(([region, color]) => {
+    legendList.append("div")
+      .attr("class", "legend-item")
+      .html(`<div class="legend-dot" style="background:${color}"></div><span>${region}</span>`);
+  });
+}
+
+function formatTooltip(d, xKey, yKey, sizeKey) {
+  const xDim = DIM_OPTIONS.find(o => o.key === xKey);
+  const yDim = DIM_OPTIONS.find(o => o.key === yKey);
+  const sDim = DIM_OPTIONS.find(o => o.key === sizeKey);
+  const fmt = v => typeof v === "number" ? v.toFixed(2) : v;
+
+  return `<strong>${d.region}</strong>
+    日期: ${d.time}<br>
+    ${xDim ? xDim.label : xKey}: ${fmt(d[xKey])}<br>
+    ${yDim ? yDim.label : yKey}: ${fmt(d[yKey])}<br>
+    ${sDim ? sDim.label : sizeKey}: ${fmt(d[sizeKey])}<br>
+    盐度: ${fmt(d.salinity)} PSU<br>
+    CO₂: ${fmt(d.co2)} ppm`;
+}
+
+// ── 主流程 ──────────────────────────────────────────────────────
+initSelects();
+
+d3.json(DATA_PATH).then(data => {
+  fullData = data;
+  updateChart(DEFAULTS.x, DEFAULTS.y, DEFAULTS.size);
+  console.log(
+    `%c散点图加载完成 %c| %c${data.length} %c条记录 %c| %c${DIM_OPTIONS.length} %c个维度可选`,
+    "color:#0072B2", "color:#666",
+    "font-weight:bold", "color:#666",
+    "color:#666", "font-weight:bold", "color:#666"
+  );
+}).catch(err => {
+  console.error("数据加载失败:", err);
+  d3.select("#scatter-svg")
+    .append("text")
+    .attr("x", W/2).attr("y", H/2)
+    .attr("text-anchor", "middle")
+    .attr("fill", "red")
+    .attr("font-size", "14px")
+    .text("数据加载失败，请确认数据文件路径正确。");
+});
+</script>
+</body>
+</html>

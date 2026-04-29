@@ -1,0 +1,205 @@
+/*
+ * ============================================================
+ *  全球海洋-大气耦合时空可视分析系统 — 统一视觉规范 v1.0
+ *  成员 C 制定 | Week 5 初稿
+ * ============================================================
+ *
+ * 用途：全系统图表统一的颜色、字体、间距、通用组件样式。
+ *       所有成员的图表 HTML 文件通过 <link> 引用此 CSS。
+ *
+ * 颜色方案：Okabe-Ito 色盲友好调色板（8 色）
+ *   Okabe, M. & Ito, K. (2008). Color Universal Design.
+ *   对红绿色盲（Protanopia/Deuteranopia）和蓝黄色盲（Tritanopia）
+ *   均有良好可分辨性。
+ *
+ * 颜色语义映射（6 海域 → 6 色）：
+ *   太平洋     → #0072B2 (蓝)     最大开阔海域
+ *   大西洋     → #009E73 (绿)     富饶海域
+ *   印度洋     → #F0E442 (黄)     热带暖水海域
+ *   北极海域   → #56B4E9 (天蓝)   寒冷极地
+ *   南极海域   → #CC79A7 (紫红)   极地冷水
+ *   赤道区域   → #E69F00 (橙)     热带高能
+ *   备用       → #D55E00 (暗橙)
+ *   备用       → #000000 (黑)
+ *
+ * 对比度：所有颜色在白色背景上均满足 WCAG AA 标准
+ * （黄色 #F0E442 在粗体/大字下满足，常规字建议加深色描边）。
+ *
+ * 字体规范：
+ *   title 16px bold / subtitle 14px / label 12px / tick 11px / tooltip 13px
+ *
+ * 间距规范：
+ *   图表 margin：top 40, right 80, bottom 60, left 60
+ * ============================================================
+ */
+
+/* ===== 1. CSS 自定义属性 ===== */
+:root {
+    /* --- Okabe-Ito 主色板（6 海域） --- */
+    --color-pacific:    #0072B2;
+    --color-atlantic:   #009E73;
+    --color-indian:     #F0E442;
+    --color-arctic:     #56B4E9;
+    --color-antarctic:  #CC79A7;
+    --color-equatorial: #E69F00;
+
+    /* 备用色 */
+    --color-spare1: #D55E00;
+    --color-spare2: #000000;
+
+    /* 语义色 */
+    --color-bg:         #ffffff;
+    --color-gridline:   #e0e0e0;
+    --color-axis:       #666666;
+    --color-text:       #333333;
+    --color-text-light: #888888;
+    --color-tooltip-bg: rgba(40, 40, 40, 0.92);
+
+    /* 字体栈 */
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+
+    /* 字号 */
+    --fs-title:    16px;
+    --fs-subtitle: 14px;
+    --fs-label:    12px;
+    --fs-tick:     11px;
+    --fs-tooltip:  13px;
+
+    /* 间距 */
+    --sp-xs: 4px;
+    --sp-sm: 8px;
+    --sp-md: 12px;
+    --sp-lg: 20px;
+}
+
+/* ===== 2. 全局重置 ===== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: var(--color-bg);
+    line-height: 1.6;
+}
+
+/* ===== 3. 图表容器 ===== */
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--sp-lg);
+}
+
+.chart-title {
+    font-size: var(--fs-title);
+    font-weight: 700;
+    margin-bottom: var(--sp-xs);
+    color: var(--color-text);
+}
+
+.chart-subtitle {
+    font-size: var(--fs-subtitle);
+    color: var(--color-text-light);
+    margin-bottom: var(--sp-lg);
+}
+
+/* ===== 4. SVG 通用样式 ===== */
+.grid line {
+    stroke: var(--color-gridline);
+    stroke-opacity: 0.7;
+    shape-rendering: crispEdges;
+}
+.grid path {
+    stroke-width: 0;
+}
+
+.axis line {
+    stroke: var(--color-axis);
+    stroke-width: 1;
+}
+.axis path {
+    stroke: var(--color-axis);
+    stroke-width: 1;
+}
+.axis text {
+    font-size: var(--fs-tick);
+    fill: var(--color-text);
+}
+
+.axis-label {
+    font-size: var(--fs-label);
+    fill: var(--color-text);
+    text-anchor: middle;
+}
+
+/* ===== 5. 图例 ===== */
+.legend {
+    font-size: var(--fs-label);
+}
+.legend text {
+    fill: var(--color-text);
+}
+.legend rect {
+    stroke: none;
+}
+
+/* ===== 6. Tooltip ===== */
+.tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--color-tooltip-bg);
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: var(--fs-tooltip);
+    font-family: var(--font-family);
+    line-height: 1.5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    max-width: 240px;
+}
+
+/* ===== 7. 交互通用 ===== */
+.chart-element {
+    transition: opacity 0.2s ease;
+}
+.chart-element:hover {
+    opacity: 0.85;
+}
+
+.dimmed {
+    opacity: 0.10;
+}
+
+/* ===== 8. 色板工具类（供 CSS 直接使用） ===== */
+.fill-pacific    { fill: var(--color-pacific);    }
+.fill-atlantic   { fill: var(--color-atlantic);   }
+.fill-indian     { fill: var(--color-indian);     }
+.fill-arctic     { fill: var(--color-arctic);     }
+.fill-antarctic  { fill: var(--color-antarctic);  }
+.fill-equatorial { fill: var(--color-equatorial); }
+
+.stroke-pacific    { stroke: var(--color-pacific);    }
+.stroke-atlantic   { stroke: var(--color-atlantic);   }
+.stroke-indian     { stroke: var(--color-indian);     }
+.stroke-arctic     { stroke: var(--color-arctic);     }
+.stroke-antarctic  { stroke: var(--color-antarctic);  }
+.stroke-equatorial { stroke: var(--color-equatorial); }
+
+/* ===== 9. 响应式 ===== */
+@media (max-width: 768px) {
+    :root {
+        --fs-title: 14px;
+        --fs-label: 11px;
+        --fs-tick:  10px;
+    }
+}

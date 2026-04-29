@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>新颖图表 · 需求分析与原型设计</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      background: #f5f7fa; color: #2d3e50; line-height: 1.7;
+      padding: 40px 20px;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px 36px; margin-bottom: 24px;
+    }
+    h1 { font-size: 24px; color: #1a2b4a; margin-bottom: 4px; }
+    h2 { font-size: 18px; color: #1a2b4a; margin: 28px 0 14px;
+         padding-bottom: 8px; border-bottom: 2px solid #e8ecf1; }
+    h3 { font-size: 15px; color: #1a2b4a; margin: 18px 0 8px; }
+    .meta { font-size: 13px; color: #7a8fa6; margin-bottom: 20px; }
+
+    table {
+      width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e0e6ed; padding: 8px 14px; text-align: left;
+    }
+    th { background: #f5f7fa; font-weight: 700; color: #1a2b4a; font-size: 12px; }
+    td { color: #2d3e50; }
+
+    .highlight-box {
+      background: #e8f4fd; border-left: 4px solid #0072B2;
+      padding: 16px 20px; border-radius: 4px; margin: 16px 0; font-size: 14px;
+    }
+
+    .problem-tag {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 600; margin-right: 6px;
+      background: #ffe0e0; color: #c0392b;
+    }
+    .solution-tag {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 600; margin-right: 6px;
+      background: #d5f5e3; color: #1e8449;
+    }
+
+    .alt-card {
+      border: 1.5px solid #e0e6ed; border-radius: 10px;
+      padding: 16px 20px; margin: 10px 0;
+    }
+    .alt-card.recommended {
+      border-color: #0072B2;
+      background: #f0f7fd;
+    }
+    .alt-card h3 { margin: 0 0 6px; }
+
+    .flow-step {
+      display: flex; align-items: center; gap: 12px; margin: 10px 0; font-size: 13px;
+    }
+    .flow-step .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #0072B2; color: #fff; display: flex;
+      align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; flex-shrink: 0;
+    }
+    .flow-step .arrow {
+      color: #7a8fa6; font-size: 18px;
+    }
+
+    /* 模拟平行坐标图 */
+    .pc-mock {
+      display: flex; justify-content: space-between; align-items: stretch;
+      background: #fafbfc; border: 1px solid #e0e6ed; border-radius: 8px;
+      padding: 24px 20px; margin: 16px 0; height: 200px; position: relative;
+      overflow: hidden;
+    }
+    .pc-mock .axis {
+      width: 2px; background: #bbb; position: relative;
+    }
+    .pc-mock .swatch-line {
+      position: absolute; left: 0; right: 0; height: 2px;
+      border-radius: 1px; opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 标题 -->
+  <div class="card">
+    <h1>新颖图表 · 需求分析与原型设计说明书</h1>
+    <p class="meta">
+      主导：成员 C &nbsp;|&nbsp; 协同：全员 &nbsp;|&nbsp; Week 6
+      &nbsp;|&nbsp; 选题：全球海洋-大气耦合时空可视分析
+    </p>
+    <div class="highlight-box">
+      <strong>文档目的：</strong>在进入代码实现（Week 7）之前，明确新颖图表的
+      选题适配逻辑、分析任务映射、设计方案取舍和实施路径。
+    </div>
+  </div>
+
+  <!-- ===== 1. 场景痛点分析 ===== -->
+  <div class="card">
+    <h2>1. 场景痛点分析</h2>
+
+    <h3>1.1 现有基础图表的局限</h3>
+    <table>
+      <thead>
+        <tr><th>现有图表</th><th>能回答的问题</th><th>无法回答的问题</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>饼图</strong></td>
+          <td>各海域各有多少条记录，占比如何</td>
+          <td>海域之间的环境特征差异是什么？</td>
+        </tr>
+        <tr>
+          <td><strong>散点图/气泡图</strong></td>
+          <td>SST 与湿度有相关性吗？分布如何？</td>
+          <td>多维变量之间同时存在怎样的耦合模式？</td>
+        </tr>
+        <tr>
+          <td><strong>雷达图</strong></td>
+          <td>各海域在 6 个维度上相对强弱</td>
+          <td>单个采样点在所有维度上位于什么位置？</td>
+        </tr>
+        <tr>
+          <td><strong>桑基图</strong></td>
+          <td>海域到温度区间的记录流向</td>
+          <td>原始维度值之间的相互依赖关系？</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>1.2 核心场景痛点</h3>
+    <div style="margin:16px 0;">
+      <p style="margin:10px 0;">
+        <span class="problem-tag">痛点 1</span>
+        <strong>维度碎片化：</strong>
+        散点图/气泡图每次只能看 2-3 个维度。
+        分析师需反复切换 X/Y 下拉菜单才能拼凑出完整的多维耦合图景。
+        11 个数值维度的两两组合有 55 种，逐个查看不可行。
+      </p>
+      <p style="margin:10px 0;">
+        <span class="problem-tag">痛点 2</span>
+        <strong>海域特征不可比：</strong>
+        雷达图能看 6 海域的维度均值，
+        但损失了单个采样点的分布信息。无法回答"太平洋 600 条记录在 SST-盐度-湿度
+        三个维度上是否聚集成了几个簇？"
+      </p>
+      <p style="margin:10px 0;">
+        <span class="problem-tag">痛点 3</span>
+        <strong>耦合模式不可见：</strong>
+        海洋变量（SST、盐度、海流）与大气变量（风速、气压、湿度、CO₂）
+        之间存在物理耦合关系，但现有图表无法一次性展示 "SST↑ → 湿度↑ → 气压↓"
+        这样的多步因果链。
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== 2. 方案论证 ===== -->
+  <div class="card">
+    <h2>2. 新颖图表选型论证</h2>
+
+    <h3>2.1 候选方案对比</h3>
+
+    <div class="alt-card recommended">
+      <h3>方案 A：平行坐标图（Parallel Coordinates）★ 推荐</h3>
+      <p style="font-size:13px;color:#7a8fa6;">
+        每条记录 = 一条穿过所有维度轴的折线。颜色按海域编码。支持点击图例筛选海域。
+      </p>
+      <p style="font-size:13px;margin-top:6px;">
+        <strong>适配理由：</strong>
+        ① 一次性展示 8-11 个维度，解决碎片化痛点；
+        ② 海域间折线"纹理"差异一眼可见，不同海域的维度指纹直接对比；
+        ③ 折线交叉/分离模式直观展示变量间相关性（如 SST↔风力交叉 = 负相关）；
+        ④ D3.js 手动实现无额外依赖，可控性强。
+      </p>
+    </div>
+
+    <div class="alt-card">
+      <h3>方案 B：热力图矩阵（Correlation Heatmap + Facet）</h3>
+      <p style="font-size:13px;color:#7a8fa6;">
+        6×6 相关矩阵热力图 + 6 海域分面，每个小格显示该海域的两变量散点。
+      </p>
+      <p style="font-size:13px;margin-top:6px;">
+        <strong>不推荐理由：</strong>11 维 × 11 维 × 6 海域 = 726 个子图，
+        信息密度过高，用户认知负荷大。更适合印刷报告而非交互分析。
+      </p>
+    </div>
+
+    <div class="alt-card">
+      <h3>方案 C：降维投影图（PCA/t-SNE 散点图）</h3>
+      <p style="font-size:13px;color:#7a8fa6;">
+        对 11 维数据做 PCA 降维到 2D，散点着色。
+      </p>
+      <p style="font-size:13px;margin-top:6px;">
+        <strong>不推荐理由：</strong>降维损失维度可解释性。分析师不知道
+        "PC1 方向"代表什么物理含义，违背可视分析的"可解释"原则。
+        且需要引入额外计算库。
+      </p>
+    </div>
+
+    <h3>2.2 最终选择：方案 A — 平行坐标图</h3>
+    <div class="highlight-box">
+      <strong>决策依据：</strong>
+      平行坐标图在 "多维一次性展示" "海域对比" "耦合模式可视化"
+      三个痛点上均有直接解决方案。D3.js 纯手工实现，无额外依赖。
+      维度可自由增减（5-11 维），交互方式清晰（悬浮高亮、图例筛选）。
+    </div>
+  </div>
+
+  <!-- ===== 3. 分析任务映射 ===== -->
+  <div class="card">
+    <h2>3. 分析任务 → 图表功能映射</h2>
+    <table>
+      <thead>
+        <tr><th>分析任务</th><th>平行坐标图功能</th><th>交互方式</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>T1:</strong> 各海域的环境特征"指纹"有何差异？</td>
+          <td>6 种颜色折线集群分离程度直接可视化</td>
+          <td>点击图例筛选/叠加海域</td>
+        </tr>
+        <tr>
+          <td><strong>T2:</strong> 海洋变量与大气变量存在怎样的耦合关系？</td>
+          <td>相邻轴间折线交叉模式：平行=正相关，交叉=负相关，乱=无关</td>
+          <td>悬浮单条折线高亮，查看具体值</td>
+        </tr>
+        <tr>
+          <td><strong>T3:</strong> 3000+ 条数据中是否存在异常模式？</td>
+          <td>大量折线中的少数"离群折线"视觉突出</td>
+          <td>悬浮查看该异常记录的完整维度值</td>
+        </tr>
+        <tr>
+          <td><strong>T4:</strong> 不同海域的维度分布范围是否重叠？</td>
+          <td>每条轴上的彩色散点密度 = 该维度取值范围</td>
+          <td>观察轴的拥挤/稀疏程度</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 4. 原型设计 ===== -->
+  <div class="card">
+    <h2>4. 原型设计</h2>
+
+    <h3>4.1 布局结构</h3>
+    <div style="background:#fafbfc;border:1px solid #e0e6ed;border-radius:8px;padding:20px;margin:16px 0;">
+      <div style="text-align:center;font-size:14px;font-weight:700;color:#1a2b4a;margin-bottom:12px;">
+        平行坐标图 · 图表标题
+      </div>
+      <div style="text-align:center;font-size:12px;color:#7a8fa6;margin-bottom:16px;">
+        数据来源说明 · 采样记录数 · 维度数
+      </div>
+
+      <!-- 模拟平行坐标图 -->
+      <div class="pc-mock">
+        <div style="position:absolute;top:8px;left:24px;font-size:11px;font-weight:600;color:#0072B2;">SST</div>
+        <div class="axis" style="height:100%;"></div>
+        <div style="position:absolute;top:8px;left:24%;font-size:11px;font-weight:600;color:#009E73;">盐度</div>
+        <div class="axis" style="height:100%;"></div>
+        <div style="position:absolute;top:8px;left:42%;font-size:11px;font-weight:600;color:#F0E442;">风速</div>
+        <div class="axis" style="height:100%;"></div>
+        <div style="position:absolute;top:8px;left:59%;font-size:11px;font-weight:600;color:#56B4E9;">气压</div>
+        <div class="axis" style="height:100%;"></div>
+        <div style="position:absolute;top:8px;left:77%;font-size:11px;font-weight:600;color:#CC79A7;">湿度</div>
+        <div class="axis" style="height:100%;"></div>
+        <div style="position:absolute;bottom:8px;left:38%;font-size:10px;color:#aaa;">
+          ← 每条折线 = 一个时空采样点，颜色 = 海域 →
+        </div>
+        <!-- 模拟几条折线 -->
+        <svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 600 160">
+          <polyline points="50,40 150,60 250,80 350,90 450,70" fill="none" stroke="#0072B2" stroke-width="1.5" opacity="0.5"/>
+          <polyline points="50,100 150,80 250,50 350,40 450,30" fill="none" stroke="#009E73" stroke-width="1.5" opacity="0.5"/>
+          <polyline points="50,70 150,50 250,30 350,60 450,90" fill="none" stroke="#F0E442" stroke-width="1.5" opacity="0.5"/>
+          <polyline points="50,20 150,90 250,100 350,110 450,50" fill="none" stroke="#CC79A7" stroke-width="1.5" opacity="0.5"/>
+        </svg>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:8px;">
+        <div style="font-size:12px;font-weight:600;">图例（点击筛选）</div>
+        <div style="font-size:11px;color:#7a8fa6;">Tooltip: 悬浮查看完整维度值</div>
+      </div>
+    </div>
+
+    <h3>4.2 交互设计</h3>
+    <table>
+      <thead>
+        <tr><th>交互</th><th>触发方式</th><th>视觉效果</th><th>用途</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>单条高亮</td><td>鼠标悬浮折线</td>
+          <td>当前折线加粗+不透明，其余 0.06 透明度</td>
+          <td>查看单个采样点在各维度的具体值</td>
+        </tr>
+        <tr>
+          <td>海域筛选</td><td>点击图例中的海域名</td>
+          <td>仅该海域折线高亮，其余调暗</td>
+          <td>聚焦某一海域的多维模式</td>
+        </tr>
+        <tr>
+          <td>取消筛选</td><td>再次点击同一海域</td>
+          <td>恢复全部显示</td>
+          <td>返回全局视图</td>
+        </tr>
+        <tr>
+          <td>Tooltip</td><td>跟随鼠标移动</td>
+          <td>半透明浮层显示 8 维数值</td>
+          <td>精确读取数据</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>4.3 数据流设计</h3>
+    <div class="flow-step">
+      <div class="step-num">1</div> 加载 JSON 数据集 (3600条)
+      <span class="arrow">→</span>
+      <div class="step-num">2</div> 采样 1/5 (~720条)
+      <span class="arrow">→</span>
+      <div class="step-num">3</div> 过滤维度字段完整记录
+      <span class="arrow">→</span>
+      <div class="step-num">4</div> 每个维度建立 y 轴线性比例尺
+    </div>
+    <div class="flow-step">
+      <div class="step-num">5</div> 生成 d3.scalePoint x 轴
+      <span class="arrow">→</span>
+      <div class="step-num">6</div> 每条记录 → polyline points
+      <span class="arrow">→</span>
+      <div class="step-num">7</div> 绑定颜色、交互事件
+      <span class="arrow">→</span>
+      <div class="step-num">8</div> 渲染 SVG + 图例
+    </div>
+  </div>
+
+  <!-- ===== 5. 技术方案 ===== -->
+  <div class="card">
+    <h2>5. 技术方案</h2>
+    <table>
+      <thead>
+        <tr><th>项目</th><th>方案</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>图表库</td><td>D3.js v7（CDN 加载，无构建工具）</td></tr>
+        <tr><td>布局方式</td><td>手动实现 parallel coordinates（非 D3 内置 layout）</td></tr>
+        <tr><td>数据采样</td><td>3600→~720 条（取每第 5 条），平衡细节与渲染性能</td></tr>
+        <tr><td>颜色映射</td><td>Okabe-Ito 色板，与 type.css 视觉规范一致</td></tr>
+        <tr><td>数据适配</td><td>使用 data-adapter.js 共享模块加载数据集</td></tr>
+        <tr><td>交互实现</td><td>CSS class 切换 (.highlighted / .dimmed) + D3 .on() 事件</td></tr>
+        <tr><td>浏览器兼容</td><td>Chrome/Edge/Firefox/Safari 最新两个大版本</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 6. 原型验证状态 ===== -->
+  <div class="card">
+    <h2>6. 原型验证状态</h2>
+    <table>
+      <thead>
+        <tr><th>验证项</th><th>状态</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>数据加载</td>
+          <td style="color:#1e8449;font-weight:700;">✓ 通过</td>
+          <td>成功加载 3600 条 → 采样 720 条 → 过滤后 ~700 条有效</td>
+        </tr>
+        <tr>
+          <td>8 维渲染</td>
+          <td style="color:#1e8449;font-weight:700;">✓ 通过</td>
+          <td>SST、盐度、风速、气压、降水、CO₂、湿度、海流 8 轴正常</td>
+        </tr>
+        <tr>
+          <td>海域着色</td>
+          <td style="color:#1e8449;font-weight:700;">✓ 通过</td>
+          <td>6 海域 × 6 色，图例颜色一致</td>
+        </tr>
+        <tr>
+          <td>悬浮高亮</td>
+          <td style="color:#1e8449;font-weight:700;">✓ 通过</td>
+          <td>单条折线高亮 + 其余 dimmed + tooltip 显示</td>
+        </tr>
+        <tr>
+          <td>图例筛选</td>
+          <td style="color:#1e8449;font-weight:700;">✓ 通过</td>
+          <td>点击图例筛选海域，再次点击取消</td>
+        </tr>
+        <tr>
+          <td>性能</td>
+          <td style="color:#1e8449;font-weight:700;">✓ 通过</td>
+          <td>720 条折线在 Chrome 上 &lt;200ms 渲染完成</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="highlight-box" style="background:#d5f5e3;border-left-color:#28a745;">
+      <strong>结论：</strong>原型（code/week5/模块3/test.html）已通过全部验证项。
+      Week 7 可直接进入正式实现与交互深化。
+    </div>
+  </div>
+
+  <!-- ===== 7. Week 7 计划 ===== -->
+  <div class="card">
+    <h2>7. Week 7 实现计划</h2>
+    <table>
+      <thead>
+        <tr><th>优先级</th><th>任务</th><th>负责人</th><th>依赖</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>P0</td>
+          <td>平行坐标图正式实现（基于 Week 5 原型）</td>
+          <td>成员 C</td>
+          <td>Week 5 原型</td>
+        </tr>
+        <tr>
+          <td>P0</td>
+          <td>新增轴刷选（Brush）交互 — 在轴上拖动选择范围</td>
+          <td>成员 C</td>
+          <td>D3 brush</td>
+        </tr>
+        <tr>
+          <td>P1</td>
+          <td>维度重排 — 拖拽轴改变顺序，探索不同变量相邻关系</td>
+          <td>成员 C</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>P1</td>
+          <td>统一交互样式 — tooltip 位置、动画曲线与其余图表一致</td>
+          <td>成员 D</td>
+          <td>视觉规范</td>
+        </tr>
+        <tr>
+          <td>P2</td>
+          <td>数据适配验证 — 确认 Adapter 模块输出的格式正确</td>
+          <td>成员 A</td>
+          <td>data-adapter.js</td>
+        </tr>
+        <tr>
+          <td>P2</td>
+          <td>性能测试 — 3600 条全量渲染测试，确定采样策略</td>
+          <td>成员 B</td>
+          <td>完整数据集</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+console.log(
+  "%c新颖图表设计说明书加载完成%c | 成员 C · Week 6",
+  "color:#009E73;font-weight:bold;", "color:#666;"
+);
+</script>
+</body>
+</html>

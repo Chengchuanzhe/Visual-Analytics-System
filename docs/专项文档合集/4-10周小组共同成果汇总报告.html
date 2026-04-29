@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>实验2 · Week 4–10 小组共同成果汇总报告</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+      background: #f5f7fa; color: #2d3e50; line-height: 1.7;
+      padding: 40px 20px;
+    }
+    .container { max-width: 1080px; margin: 0 auto; }
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px 36px; margin-bottom: 24px;
+    }
+    h1 { font-size: 26px; color: #1a2b4a; margin-bottom: 6px; text-align: center; }
+    h2 { font-size: 19px; color: #1a2b4a; margin: 28px 0 14px;
+         padding-bottom: 8px; border-bottom: 2px solid #e8ecf1; }
+    h3 { font-size: 15px; color: #1a2b4a; margin: 18px 0 8px; }
+    .meta { font-size: 13px; color: #7a8fa6; margin-bottom: 20px; text-align: center; }
+
+    table {
+      width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px;
+    }
+    th, td { border: 1px solid #e0e6ed; padding: 8px 14px; }
+    th { background: #f5f7fa; font-weight: 700; color: #1a2b4a; font-size: 12px; text-align: center; }
+    td { text-align: center; }
+
+    .pass { color: #155724; background: #d4edda; font-weight: 700; }
+    .highlight-box {
+      background: #e8f4fd; border-left: 4px solid #0072B2;
+      padding: 16px 20px; border-radius: 4px; margin: 16px 0; font-size: 14px;
+    }
+
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;
+    }
+    .summary-box {
+      background: linear-gradient(135deg, #f5f7fa, #e8ecf1);
+      border-radius: 10px; padding: 16px; text-align: center;
+    }
+    .summary-box .num {
+      font-size: 32px; font-weight: 700; color: #0072B2;
+    }
+    .summary-box .label { font-size: 11px; color: #7a8fa6; margin-top: 2px; }
+
+    .week-section {
+      border-left: 3px solid #0072B2; padding-left: 20px; margin: 20px 0;
+    }
+    .week-section h3 { color: #0072B2; }
+
+    .member-tag {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 10px; font-weight: 700; margin-right: 4px;
+    }
+    .tag-a { background: #d1ecf1; color: #0c5460; }
+    .tag-b { background: #fff3cd; color: #856404; }
+    .tag-c { background: #d5f5e3; color: #1e8449; }
+    .tag-d { background: #e2e3f1; color: #3a3d6b; }
+    .tag-all { background: #fce4ec; color: #880e4f; }
+
+    .chart-type { font-weight: 700; color: #1a2b4a; }
+    .chart-file { font-size: 11px; color: #7a8fa6; }
+
+    .progress-bar {
+      height: 24px; border-radius: 12px; background: #e0e6ed;
+      margin: 10px 0; overflow: hidden; display: flex;
+    }
+    .progress-seg {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: #fff;
+    }
+
+    .spec-row {
+      display: flex; gap: 12px; margin: 8px 0; align-items: center;
+    }
+    .spec-label { min-width: 80px; font-size: 12px; font-weight: 600; color: #1a2b4a; }
+    .spec-value { font-size: 13px; }
+
+    .flow-diagram {
+      background: #fafbfc; border: 1px solid #e0e6ed; border-radius: 8px;
+      padding: 24px; margin: 16px 0; text-align: center;
+      font-family: monospace; font-size: 12px; line-height: 2.2;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ═══ 封面 ═══ -->
+  <div class="card">
+    <h1>实验 2 · 全球海洋-大气耦合时空可视分析系统</h1>
+    <h1 style="font-size:20px;color:#7a8fa6;font-weight:400;">Week 4–10 小组共同成果汇总报告</h1>
+    <p class="meta">
+      编写：全员 &nbsp;|&nbsp; 汇总：成员 C &nbsp;|&nbsp; 日期：2026-04
+    </p>
+
+    <!-- 核心数据 -->
+    <div class="summary-grid">
+      <div class="summary-box">
+        <div class="num">26</div>
+        <div class="label">产出文件总数</div>
+      </div>
+      <div class="summary-box">
+        <div class="num">6</div>
+        <div class="label">图表类型</div>
+      </div>
+      <div class="summary-box">
+        <div class="num">7</div>
+        <div class="label">迭代周次</div>
+      </div>
+      <div class="summary-box">
+        <div class="num">4</div>
+        <div class="label">协作成员</div>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <strong>项目概述：</strong>
+      基于 IFREMER Argo 浮标实测数据 + ERA5 气候估算，
+      构建全球 6 大海域（太平洋、大西洋、印度洋、北极、南极、赤道）的
+      海洋-大气耦合时空可视分析系统。数据规模 3600 条 × 16 维 × 3 年。
+    </div>
+  </div>
+
+  <!-- ═══ 1. 成员贡献总览 ═══ -->
+  <div class="card">
+    <h2>1. 成员分工与贡献总览</h2>
+    <table>
+      <thead>
+        <tr><th>成员</th><th>主责模块</th><th>核心产出</th><th>文件数</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>成员 A</strong></td>
+          <td>模块1：数据统筹 + 基础图表</td>
+          <td style="text-align:left;font-size:12px;">
+            数据抽象说明书、数据集验证页面、饼图、气泡图
+          </td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <td><strong>成员 B</strong></td>
+          <td>模块2：高级图表 + 基础图表</td>
+          <td style="text-align:left;font-size:12px;">
+            散点图、雷达图、桑基图（含 d3-sankey 布局）
+          </td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <td><strong>成员 C</strong></td>
+          <td>模块3：新颖图表 + 视觉优化</td>
+          <td style="text-align:left;font-size:12px;">
+            平行坐标图 v1+v2、视觉规范 v2+v3、颜色审计报告、
+            色盲友好方案、对比度报告、格式塔优化审核、数据整理工具
+          </td>
+          <td>10</td>
+        </tr>
+        <tr>
+          <td><strong>成员 D</strong></td>
+          <td>模块4：交互设计 + 原型搭建</td>
+          <td style="text-align:left;font-size:12px;">
+            交互整合方案、前端静态原型、交互接口文档、组合测试报告
+          </td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <td><strong>协同代码</strong></td>
+          <td>全员共享</td>
+          <td style="text-align:left;font-size:12px;">
+            data-adapter.js 数据适配模块（含 7 种图表格式转换）
+          </td>
+          <td>1</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 贡献占比 -->
+    <div class="progress-bar">
+      <div class="progress-seg" style="width:15%;background:#0072B2;">A · 15%</div>
+      <div class="progress-seg" style="width:15%;background:#009E73;">B · 15%</div>
+      <div class="progress-seg" style="width:50%;background:#CC79A7;">C · 50%</div>
+      <div class="progress-seg" style="width:15%;background:#E69F00;">D · 15%</div>
+      <div class="progress-seg" style="width:5%;background:#56B4E9;">协同 5%</div>
+    </div>
+    <p style="font-size:11px;color:#7a8fa6;text-align:center;">按代码文件数量估算的贡献占比</p>
+  </div>
+
+  <!-- ═══ 2. 逐周详细产出 ═══ -->
+  <div class="card">
+    <h2>2. 逐周详细产出</h2>
+
+    <!-- Week 4 -->
+    <div class="week-section">
+      <h3>Week 4 · 数据统筹 + 基础图表开发</h3>
+      <table>
+        <thead><tr><th>产出</th><th>类型</th><th>成员</th><th>文件</th><th>关键特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>数据集说明与验证</td>
+            <td><span class="member-tag tag-a">A</span> 文档+代码</td>
+            <td>A</td>
+            <td class="chart-file">数据集说明与验证-A.html</td>
+            <td style="text-align:left;">16字段Schema、实时验证3600条/6海域/3年</td>
+          </tr>
+          <tr>
+            <td>饼图</td>
+            <td><span class="member-tag tag-a">A</span> 基础图表</td>
+            <td>A</td>
+            <td class="chart-file">...-week4-饼图-A.html</td>
+            <td style="text-align:left;">环形图、百分比标签、悬浮放大+tooltip、Okabe-Ito色板</td>
+          </tr>
+          <tr>
+            <td>散点图</td>
+            <td><span class="member-tag tag-b">B</span> 基础图表</td>
+            <td>B</td>
+            <td class="chart-file">...-week4-散点图-B.html</td>
+            <td style="text-align:left;">11维下拉切换、气泡大小编码、海域颜色、hover tooltip</td>
+          </tr>
+          <tr>
+            <td>3个示例图表</td>
+            <td><span class="member-tag tag-c">C</span> 示例</td>
+            <td>C</td>
+            <td class="chart-file">饼图/散点图/桑基图.html</td>
+            <td style="text-align:left;">D3.js图表技术验证（假数据演示）</td>
+          </tr>
+          <tr>
+            <td>数据整理工具</td>
+            <td><span class="member-tag tag-c">C</span> Python工具</td>
+            <td>C</td>
+            <td class="chart-file">数据整理.py</td>
+            <td style="text-align:left;">加载→摘要→统计→相关性→图表格式导出</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Week 5 -->
+    <div class="week-section">
+      <h3>Week 5 · 基础图表补全 + 高级图表开发 + 视觉规范初稿</h3>
+      <table>
+        <thead><tr><th>产出</th><th>类型</th><th>成员</th><th>文件</th><th>关键特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>气泡图</td>
+            <td><span class="member-tag tag-a">A</span> 基础图表</td>
+            <td>A</td>
+            <td class="chart-file">...-week5-气泡图-A.html</td>
+            <td style="text-align:left;">X/Y/尺寸三维下拉切换、sqrt面积编码、Okabe-Ito色</td>
+          </tr>
+          <tr>
+            <td>雷达图</td>
+            <td><span class="member-tag tag-b">B</span> 高级图表</td>
+            <td>B</td>
+            <td class="chart-file">...-week5-雷达图-B.html</td>
+            <td style="text-align:left;">极坐标、6维度×6海域叠加、图例点击切换、维度芯片</td>
+          </tr>
+          <tr>
+            <td>桑基图</td>
+            <td><span class="member-tag tag-b">B</span> 高级图表</td>
+            <td>B</td>
+            <td class="chart-file">...-week5-桑基图-B.html</td>
+            <td style="text-align:left;">d3-sankey布局、海域→SST区间流向、悬浮高亮调暗</td>
+          </tr>
+          <tr>
+            <td>平行坐标图（原型）</td>
+            <td><span class="member-tag tag-c">C</span> 新颖图表</td>
+            <td>C</td>
+            <td class="chart-file">test.html</td>
+            <td style="text-align:left;">8维×6色折线、悬浮高亮、图例筛选、720条采样</td>
+          </tr>
+          <tr>
+            <td>视觉规范 v1.0</td>
+            <td><span class="member-tag tag-c">C</span> 规范</td>
+            <td>C</td>
+            <td class="chart-file">type.css</td>
+            <td style="text-align:left;">Okabe-Ito色板、字体层级、间距系统、Tooltip/图例组件</td>
+          </tr>
+          <tr>
+            <td>data-adapter.js</td>
+            <td><span class="member-tag tag-all">协同</span> 共享模块</td>
+            <td>全员</td>
+            <td class="chart-file">data-adapter.js</td>
+            <td style="text-align:left;">统一数据加载、6种图表格式转换、颜色映射</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Week 6 -->
+    <div class="week-section">
+      <h3>Week 6 · 视觉规范初稿 + 新颖图表需求设计</h3>
+      <table>
+        <thead><tr><th>产出</th><th>类型</th><th>成员</th><th>文件</th><th>关键特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>视觉规范 v2.0</td>
+            <td><span class="member-tag tag-c">C</span> 规范文档</td>
+            <td>C</td>
+            <td class="chart-file">视觉规范-v2.html</td>
+            <td style="text-align:left;">色板对比度检测、字体层级、间距系统、3种布局候选、接入指南</td>
+          </tr>
+          <tr>
+            <td>新颖图表设计说明书</td>
+            <td><span class="member-tag tag-c">C</span> 设计文档</td>
+            <td>C</td>
+            <td class="chart-file">新颖图表需求分析与原型设计.html</td>
+            <td style="text-align:left;">3大痛点、3方案对比论证、分析任务映射、原型验证、W7计划</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Week 7 -->
+    <div class="week-section">
+      <h3>Week 7 · 新颖图表正式开发 + 交互整合</h3>
+      <table>
+        <thead><tr><th>产出</th><th>类型</th><th>成员</th><th>文件</th><th>关键特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>平行坐标图 v2 正式版</td>
+            <td><span class="member-tag tag-c">C</span> 新颖图表</td>
+            <td>C</td>
+            <td class="chart-file">平行坐标图-v2-正式版-C.html</td>
+            <td style="text-align:left;">轴刷选过滤、维度自由增减、全量/采样切换、9项适配性自检</td>
+          </tr>
+          <tr>
+            <td>交互整合方案与测试</td>
+            <td><span class="member-tag tag-d">D</span> 交互文档</td>
+            <td>D</td>
+            <td class="chart-file">交互整合方案与测试-D.html</td>
+            <td style="text-align:left;">6×6交互矩阵、EventBus架构、10项一致性测试、4项冲突排查</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Week 8 -->
+    <div class="week-section">
+      <h3>Week 8 · 颜色编码基础优化（色盲友好适配）</h3>
+      <table>
+        <thead><tr><th>产出</th><th>类型</th><th>成员</th><th>文件</th><th>关键特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>颜色编码审计报告</td>
+            <td><span class="member-tag tag-c">C</span> 审计文档</td>
+            <td>C</td>
+            <td class="chart-file">颜色编码审计与色盲友好方案-C.html</td>
+            <td style="text-align:left;">6图表逐项审计、3色盲模拟、3套备选方案、6项整改清单</td>
+          </tr>
+          <tr>
+            <td>对比度优化汇总报告</td>
+            <td><span class="member-tag tag-c">C</span> 汇总文档</td>
+            <td>C</td>
+            <td class="chart-file">对比度优化汇总报告.html</td>
+            <td style="text-align:left;">6海域对比度实测、文字对比度、优化前后对比、达标统计</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Week 9 -->
+    <div class="week-section">
+      <h3>Week 9 · 全系统视觉统一与深度优化</h3>
+      <table>
+        <thead><tr><th>产出</th><th>类型</th><th>成员</th><th>文件</th><th>关键特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>统一颜色表 v3.0 定稿</td>
+            <td><span class="member-tag tag-c">C</span> 规范文档</td>
+            <td>C</td>
+            <td class="chart-file">统一颜色表-v3-定稿.html</td>
+            <td style="text-align:left;">27色完整体系（6主+12扩展+9语义）、Hex+RGB+CMYK、色盲矩阵</td>
+          </tr>
+          <tr>
+            <td>视觉统一审核报告</td>
+            <td><span class="member-tag tag-c">C</span> 审核文档</td>
+            <td>C</td>
+            <td class="chart-file">全图表视觉统一审核与格式塔优化.html</td>
+            <td style="text-align:left;">30项审核93.3%通过、6大格式塔原则应用、配色重验8项全过</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Week 10 -->
+    <div class="week-section">
+      <h3>Week 10 · 多图表组合与系统前端静态原型搭建</h3>
+      <table>
+        <thead><tr><th>产出</th><th>类型</th><th>成员</th><th>文件</th><th>关键特性</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>前端静态原型</td>
+            <td><span class="member-tag tag-d">D</span> 原型代码</td>
+            <td>D</td>
+            <td class="chart-file">前端静态原型-D.html</td>
+            <td style="text-align:left;">导航栏+筛选区+6图表网格+状态栏、iframe嵌入、Dashboard全局API</td>
+          </tr>
+          <tr>
+            <td>交互接口+测试报告</td>
+            <td><span class="member-tag tag-d">D</span> 文档</td>
+            <td>D</td>
+            <td class="chart-file">交互接口说明与组合测试报告-D.html</td>
+            <td style="text-align:left;">postMessage协议、4个API、12项集成测试、启动说明</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 3. 图表清单 ═══ -->
+  <div class="card">
+    <h2>3. 完整图表清单（满足所有实验要求）</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>图表</th><th>分类</th><th>成员</th><th>D3 技术</th><th>交互</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td class="chart-type">饼图</td><td>基础图表</td><td>A</td><td>d3.pie + d3.arc (环形)</td><td>悬浮放大 + tooltip</td></tr>
+        <tr><td>2</td><td class="chart-type">散点图</td><td>基础图表</td><td>B</td><td>scaleLinear + 11维切换</td><td>悬浮高亮+调暗 + tooltip</td></tr>
+        <tr><td>3</td><td class="chart-type">气泡图</td><td>基础图表</td><td>A</td><td>scaleSqrt面积编码 + 3维下拉</td><td>悬浮突出 + tooltip</td></tr>
+        <tr><td>4</td><td class="chart-type">雷达图</td><td>高级图表</td><td>B</td><td>极坐标手动实现 + 6多边形</td><td>维度芯片 + 图例切换</td></tr>
+        <tr><td>5</td><td class="chart-type">桑基图</td><td>高级图表</td><td>B</td><td>d3-sankey布局 + sankeyLinkHorizontal</td><td>悬浮高亮调暗 + tooltip</td></tr>
+        <tr><td>6</td><td class="chart-type">平行坐标图</td><td>新颖图表</td><td>C</td><td>手动Parallel Coordinates + d3.brushY</td><td>轴刷选 + 维度增减 + 海域筛选</td></tr>
+      </tbody>
+    </table>
+
+    <div class="highlight-box" style="background:#d5f5e3;border-left-color:#28a745;">
+      <strong>要求达成：</strong>基础图表 ≥2 类 ✓(3)、高级图表 ≥1 类 ✓(2)、新颖图表 ≥1 类 ✓(1)。
+      全部图表使用 Okabe-Ito 色盲友好调色板，通过 data-adapter.js 共享数据加载逻辑。
+    </div>
+  </div>
+
+  <!-- ═══ 4. 数据集 ═══ -->
+  <div class="card">
+    <h2>4. 数据集达成指标</h2>
+    <table>
+      <thead><tr><th>指标</th><th>要求</th><th>实际</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>数据规模</td><td>≥ 3000 条</td><td><strong>3600 条</strong></td><td class="pass">✓</td></tr>
+        <tr><td>维度数</td><td>≥ 14 维</td><td><strong>16 维</strong></td><td class="pass">✓</td></tr>
+        <tr><td>时间跨度</td><td>≥ 3 年</td><td><strong>2020–2022（3年）</strong></td><td class="pass">✓</td></tr>
+        <tr><td>海域覆盖</td><td>≥ 6 个</td><td><strong>6 个（太平洋/大西洋/印度洋/北极/南极/赤道）</strong></td><td class="pass">✓</td></tr>
+        <tr><td>真实数据</td><td>SST + 盐度实测</td><td><strong>IFREMER Argo 浮标实测</strong></td><td class="pass">✓</td></tr>
+        <tr><td>格式</td><td>JSON</td><td><strong>JSON 数组</strong></td><td class="pass">✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ 5. 视觉规范演进 ═══ -->
+  <div class="card">
+    <h2>5. 视觉规范演进路线</h2>
+    <div class="flow-diagram">
+      Week 5 type.css (v1.0)
+      ───────→ Week 6 视觉规范-v2.html (v2.0)
+      ───────→ Week 8 颜色编码审计 + 对比度报告
+      ───────→ Week 9 统一颜色表-v3-定稿.html (v3.0 Final)
+    </div>
+    <table>
+      <thead><tr><th>版本</th><th>周次</th><th>新增内容</th></tr></thead>
+      <tbody>
+        <tr><td><strong>v1.0</strong></td><td>W5</td><td>Okabe-Ito 色板、字体层级、间距系统、CSS组件样式（type.css）</td></tr>
+        <tr><td><strong>v2.0</strong></td><td>W6</td><td>对比度检测、颜色审计、组件规范、3种布局候选、接入指南</td></tr>
+        <tr><td><strong>v3.0</strong></td><td>W9</td><td>27色完整体系、Hex+RGB+CMYK三值、Chart-Color矩阵、6项修订</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ 6. 技术栈 ═══ -->
+  <div class="card">
+    <h2>6. 技术栈总览</h2>
+    <table>
+      <thead><tr><th>类别</th><th>技术</th><th>版本/来源</th></tr></thead>
+      <tbody>
+        <tr><td>图表核心库</td><td>D3.js</td><td>v7（CDN: d3js.org）</td></tr>
+        <tr><td>桑基图布局</td><td>d3-sankey</td><td>v0.12.3（CDN: unpkg.com）</td></tr>
+        <tr><td>数据格式</td><td>JSON</td><td>3600条数组，16字段</td></tr>
+        <tr><td>数据处理</td><td>Python 3</td><td>ERDDAP API 下载 + 气候估算生成</td></tr>
+        <tr><td>前端</td><td>HTML/CSS/JS</td><td>纯静态、无构建工具</td></tr>
+        <tr><td>颜色方案</td><td>Okabe-Ito</td><td>6海域 + 12扩展 = 27色体系</td></tr>
+        <tr><td>色盲验证</td><td>JS 模拟算法 + Color Safe</td><td>Protanopia / Deuteranopia / Tritanopia</td></tr>
+        <tr><td>交互通信</td><td>postMessage</td><td>iframe 跨文档消息传递</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ 7. 文件统计 ═══ -->
+  <div class="card">
+    <h2>7. 全部产出文件统计</h2>
+    <table>
+      <thead><tr><th>目录</th><th>文件数</th><th>主要内容</th></tr></thead>
+      <tbody>
+        <tr><td>code/week4/</td><td>7</td><td>饼图、散点图、示例图表、数据统筹、数据整理</td></tr>
+        <tr><td>code/week5/</td><td>5</td><td>气泡图、雷达图、桑基图、平行坐标原型、视觉规范、data-adapter</td></tr>
+        <tr><td>code/week6/</td><td>2</td><td>视觉规范v2、新颖图表设计说明书</td></tr>
+        <tr><td>code/week7/</td><td>2</td><td>平行坐标图v2正式版、交互整合方案</td></tr>
+        <tr><td>code/week8/</td><td>2</td><td>颜色审计+色盲方案、对比度汇总报告</td></tr>
+        <tr><td>code/week9/</td><td>2</td><td>统一颜色表v3定稿、视觉统一审核报告</td></tr>
+        <tr><td>code/week10/</td><td>2</td><td>前端静态原型、交互接口+测试报告</td></tr>
+        <tr><td>data/</td><td>3</td><td>3600条数据集、下载脚本、补丁脚本</td></tr>
+        <tr><td>docs/</td><td>2</td><td>数据抽象说明书、本汇总报告</td></tr>
+        <tr style="background:#f5f7fa;"><td><strong>合计</strong></td><td><strong>27</strong></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ 8. 结论 ═══ -->
+  <div class="card">
+    <h2>8. 项目总结</h2>
+    <div class="highlight-box">
+      <strong>核心成果：</strong>从 Week 4 数据统筹到 Week 10 前端原型，
+      小组 4 人通过 7 周迭代，完成了 6 类图表的独立开发、
+      3 版视觉规范的演进（v1→v2→v3）、
+      27 色完整颜色体系的制定与色盲验证、
+      以及集成了四大核心模块的前端静态原型。
+    </div>
+
+    <h3>关键里程碑</h3>
+    <div class="spec-row">
+      <span class="spec-label">W4</span>
+      <span class="spec-value">数据就绪（3600条 × 16维）+ 饼图 + 散点图</span>
+    </div>
+    <div class="spec-row">
+      <span class="spec-label">W5</span>
+      <span class="spec-value">图表补齐（气泡/雷达/桑基/平行坐标）+ 视觉规范初稿 + 共享模块</span>
+    </div>
+    <div class="spec-row">
+      <span class="spec-label">W6-W7</span>
+      <span class="spec-value">新颖图表正式版（轴刷选+维度管理）+ 交互整合方案</span>
+    </div>
+    <div class="spec-row">
+      <span class="spec-label">W8-W9</span>
+      <span class="spec-value">颜色审计→对比度优化→格式塔→统一颜色表v3→全系统视觉统一93.3%</span>
+    </div>
+    <div class="spec-row">
+      <span class="spec-label">W10</span>
+      <span class="spec-value">前端静态原型（导航栏+筛选区+6图表网格+状态栏）+ 交互API + 测试报告</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+console.log(
+  "%c实验2 · Week 4–10 小组共同成果汇总报告%c · 加载完成",
+  "color:#0072B2;font-weight:bold;font-size:16px;", "color:#666;"
+);
+console.log(
+  "%c27 个文件 · 6 类图表 · 7 周迭代 · 4 人协作",
+  "color:#1e8449;font-weight:bold;"
+);
+</script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>全球海洋-大气耦合 · 雷达图</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      padding: 28px 32px 24px;
+      width: 960px;
+    }
+
+    h2 { font-size: 18px; color: #1a2b4a; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #7a8fa6; margin-bottom: 16px; }
+
+    .chart-area {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    #radar-svg { flex-shrink: 0; }
+
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .legend-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a2b4a;
+      margin-bottom: 4px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #2d3e50;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+
+    .legend-item:hover {
+      background: #f0f4f8;
+    }
+
+    .legend-item.inactive {
+      opacity: 0.3;
+    }
+
+    .legend-swatch {
+      width: 18px;
+      height: 4px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .dim-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .dim-chip {
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid #c8d6e5;
+      background: #fff;
+      color: #7a8fa6;
+      transition: all 0.15s;
+    }
+
+    .dim-chip.active {
+      background: #0072B2;
+      color: #fff;
+      border-color: #0072B2;
+    }
+
+    #tooltip {
+      position: fixed;
+      background: rgba(20, 40, 70, 0.92);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 240px;
+      z-index: 9999;
+    }
+
+    #tooltip strong {
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .chart-subtitle {
+      font-size: 12px;
+      color: #7a8fa6;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>全球海洋-大气耦合 · 多维雷达图</h2>
+  <p class="subtitle">
+    数据来源：IFREMER Argo 浮标实测 + ERA5 气候估算（2020–2022）
+    &nbsp;|&nbsp; 6 维度 × 6 海域 = 多维度环境指纹对比
+  </p>
+
+  <div class="dim-selector" id="dim-selector">
+    <span style="font-size:12px;font-weight:700;color:#1a2b4a;margin-right:6px;line-height:26px;">维度选择 (≥5):</span>
+  </div>
+
+  <div class="chart-area">
+    <svg id="radar-svg"></svg>
+    <div class="legend">
+      <div class="legend-title">海域（点击切换显示）</div>
+      <div id="legend-list"></div>
+    </div>
+  </div>
+
+  <p class="chart-subtitle">
+    各维度数值已归一化到 0–100（海域间相对比较）。真实数值见悬浮提示。
+  </p>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="../协同代码/data-adapter.js"></script>
+<script>
+// ────────────────────────────────────────────────────────────────
+//  成员 B | Week 5 模块2  |  雷达图（≥5 维度多指标对比）
+//
+//  功能：
+//    1. 维度芯片切换（默认6个维度，可自由勾选）
+//    2. 6 海域雷达多边形叠加对比
+//    3. 图例点击切换海域显示/隐藏
+//    4. 悬浮显示各维度原始均值
+//    5. 数据归一化到 0-100（海域间相对比较）
+// ================================================================
+
+const W = 600, H = 520;
+const MARGIN = { top: 40, right: 40, bottom: 40, left: 40 };
+const RADIUS = Math.min(W, H) / 2 - 60;
+const CX = W / 2, CY = H / 2;
+
+const svg = d3.select("#radar-svg")
+  .attr("width", W).attr("height", H);
+
+// 雷达图组
+const radarG = svg.append("g")
+  .attr("transform", `translate(${CX},${CY})`);
+
+const tooltip = d3.select("#tooltip");
+
+// ── 默认6个维度 ────────────────────────────────────────────────
+const ALL_DIMS = [
+  { key: "sst",            label: "海表温度\nSST" },
+  { key: "salinity",       label: "盐度\nSalinity" },
+  { key: "wind_speed",     label: "风速\nWind" },
+  { key: "pressure",       label: "气压\nPressure" },
+  { key: "humidity",       label: "湿度\nHumidity" },
+  { key: "current_speed",  label: "海流\nCurrent" },
+  { key: "precipitation",  label: "降水\nPrecip" },
+  { key: "co2",            label: "CO₂" },
+  { key: "wave_height",    label: "浪高\nWave" },
+  { key: "chlorophyll",    label: "叶绿素\nChl" },
+];
+
+let activeDims = ALL_DIMS.slice(0, 6);  // 默认前6个
+let hiddenRegions = new Set();           // 隐藏的海域
+let radarData = null;
+
+// ── 维度选择芯片 ────────────────────────────────────────────────
+function initDimChips() {
+  const container = d3.select("#dim-selector");
+  ALL_DIMS.forEach(dim => {
+    const chip = container.append("span")
+      .attr("class", "dim-chip" + (activeDims.includes(dim) ? " active" : ""))
+      .text(dim.label.replace("\n", " "))
+      .on("click", function() {
+        if (activeDims.includes(dim)) {
+          if (activeDims.length <= 5) {
+            alert("雷达图需要至少 5 个维度");
+            return;
+          }
+          activeDims = activeDims.filter(d => d !== dim);
+          d3.select(this).classed("active", false);
+        } else {
+          activeDims = [...activeDims, dim];
+          d3.select(this).classed("active", true);
+        }
+        render();
+      });
+  });
+}
+
+// ── 绘制雷达图 ──────────────────────────────────────────────────
+function render() {
+  radarG.selectAll("*").remove();
+
+  const n = activeDims.length;
+  if (n < 3) return;
+
+  // 角度计算
+  const angleSlice = (2 * Math.PI) / n;
+
+  // 坐标：极坐标 → 直角坐标
+  function polarToCart(r, i) {
+    const angle = angleSlice * i - Math.PI / 2;
+    return { x: r * Math.cos(angle), y: r * Math.sin(angle) };
+  }
+
+  // 绘制同心网格（5 层：20%, 40%, 60%, 80%, 100%）
+  const gridLevels = [0.2, 0.4, 0.6, 0.8, 1.0];
+
+  gridLevels.forEach(level => {
+    const r = RADIUS * level;
+    const points = [];
+    for (let i = 0; i < n; i++) {
+      const p = polarToCart(r, i);
+      points.push([p.x, p.y]);
+    }
+    // 闭合
+    points.push(points[0]);
+
+    radarG.append("polygon")
+      .attr("points", points.map(p => p.join(",")).join(" "))
+      .attr("fill", "none")
+      .attr("stroke", level === 1 ? "#c8d6e5" : "#e8ecf1")
+      .attr("stroke-width", level === 1 ? 1.5 : 0.8);
+
+    // 百分比标签
+    if (level < 1) {
+      const lp = polarToCart(r, 0);
+      radarG.append("text")
+        .attr("x", lp.x + 4).attr("y", lp.y - 2)
+        .attr("font-size", "9px").attr("fill", "#aaa")
+        .text(Math.round(level * 100));
+    }
+  });
+
+  // 绘制维度轴
+  for (let i = 0; i < n; i++) {
+    const outer = polarToCart(RADIUS, i);
+    radarG.append("line")
+      .attr("x1", 0).attr("y1", 0)
+      .attr("x2", outer.x).attr("y2", outer.y)
+      .attr("stroke", "#ddd")
+      .attr("stroke-width", 1);
+
+    // 维度标签
+    const labelR = RADIUS + 28;
+    const lp = polarToCart(labelR, i);
+    const dim = activeDims[i];
+    const lines = dim.label.split("\n");
+
+    const textEl = radarG.append("text")
+      .attr("x", lp.x).attr("y", lp.y)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "10px")
+      .attr("font-weight", "600")
+      .attr("fill", "#2d3e50");
+
+    lines.forEach((line, li) => {
+      textEl.append("tspan")
+        .attr("x", lp.x)
+        .attr("dy", li === 0 ? 0 : 12)
+        .text(line);
+    });
+  }
+
+  // 如果没有数据则返回
+  if (!radarData) return;
+
+  // 绘制海域多边形
+  const lineGen = d3.line()
+    .x(d => d.x).y(d => d.y);
+
+  radarData.regions.forEach(entry => {
+    if (hiddenRegions.has(entry.region)) return;
+
+    const points = activeDims.map((dim, i) => {
+      const r = (entry[dim.key] / 100) * RADIUS;
+      const p = polarToCart(r, i);
+      return { x: p.x, y: p.y, dim, value: entry[dim.key],
+               rawValue: entry[dim.key + "_raw"] };
+    });
+    // 闭合
+    const first = points[0];
+    points.push({ x: first.x, y: first.y, dim: first.dim,
+                  value: first.value, rawValue: first.rawValue });
+
+    // 多边形填充
+    radarG.append("path")
+      .datum(points)
+      .attr("d", lineGen)
+      .attr("fill", entry.color)
+      .attr("fill-opacity", 0.15)
+      .attr("stroke", entry.color)
+      .attr("stroke-width", 2.2)
+      .attr("stroke-opacity", 0.85)
+      .style("cursor", "pointer")
+      .on("mouseenter", function(event) {
+        d3.select(this)
+          .attr("fill-opacity", 0.35)
+          .attr("stroke-width", 3.5);
+        let html = `<strong>${entry.region}</strong>`;
+        activeDims.forEach(dim => {
+          const raw = entry[dim.key + "_raw"];
+          html += `${dim.label.replace("\n"," ")}: ${raw?.toFixed(2)}<br>`;
+        });
+        tooltip.style("opacity", 1).html(html);
+      })
+      .on("mousemove", event => {
+        tooltip.style("left", (event.clientX + 14) + "px")
+               .style("top",  (event.clientY - 10) + "px");
+      })
+      .on("mouseleave", function() {
+        d3.select(this)
+          .attr("fill-opacity", 0.15)
+          .attr("stroke-width", 2.2);
+        tooltip.style("opacity", 0);
+      });
+
+    // 顶点圆点
+    radarG.selectAll(`.dot-${entry.region}`)
+      .data(points.slice(0, -1))
+      .join("circle")
+      .attr("r", 3.5)
+      .attr("cx", d => d.x).attr("cy", d => d.y)
+      .attr("fill", entry.color)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1);
+  });
+
+  // 图例
+  const legend = d3.select("#legend-list");
+  legend.html("");
+  radarData.regions.forEach(entry => {
+    const item = legend.append("div")
+      .attr("class", "legend-item" + (hiddenRegions.has(entry.region) ? " inactive" : ""))
+      .on("click", function() {
+        if (hiddenRegions.has(entry.region)) {
+          hiddenRegions.delete(entry.region);
+        } else {
+          hiddenRegions.add(entry.region);
+        }
+        render();
+      });
+    item.append("div")
+      .attr("class", "legend-swatch")
+      .style("background", entry.color);
+    item.append("span").text(entry.region);
+  });
+}
+
+// ── 主流程 ──────────────────────────────────────────────────────
+initDimChips();
+
+Adapter.load().then(data => {
+  radarData = Adapter.toRadarData(data, activeDims.map(d => d.key));
+  render();
+  console.log(
+    "%c雷达图加载完成%c | %c" + activeDims.length + "%c 维度 %c| %c" +
+    Adapter.REGIONS.length + "%c 海域",
+    "color:#CC79A7;font-weight:bold", "color:#666",
+    "font-weight:bold", "color:#666",
+    "color:#666", "font-weight:bold", "color:#666"
+  );
+});
+</script>
+</body>
+</html>

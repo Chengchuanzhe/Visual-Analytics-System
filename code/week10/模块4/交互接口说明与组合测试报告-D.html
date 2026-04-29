@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>交互接口说明 · 组合测试报告 · Week 10</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+      background: #f5f7fa; color: #2d3e50; line-height: 1.7;
+      padding: 40px 20px;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px 36px; margin-bottom: 24px;
+    }
+    h1 { font-size: 24px; color: #1a2b4a; margin-bottom: 4px; }
+    h2 { font-size: 18px; color: #1a2b4a; margin: 28px 0 14px;
+         padding-bottom: 8px; border-bottom: 2px solid #e8ecf1; }
+    h3 { font-size: 15px; color: #1a2b4a; margin: 18px 0 8px; }
+    .meta { font-size: 13px; color: #7a8fa6; margin-bottom: 20px; }
+    table {
+      width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px;
+    }
+    th, td { border: 1px solid #e0e6ed; padding: 8px 14px; text-align: left; }
+    th { background: #f5f7fa; font-weight: 700; color: #1a2b4a; font-size: 12px; text-align: center; }
+    td { text-align: center; }
+    .pass { color: #155724; font-weight: 700; }
+    .warn { color: #856404; font-weight: 700; }
+    .highlight-box {
+      background: #e8f4fd; border-left: 4px solid #0072B2;
+      padding: 16px 20px; border-radius: 4px; margin: 16px 0; font-size: 14px;
+    }
+    pre {
+      background: #2d3748; color: #e2e8f0; padding: 16px 20px;
+      border-radius: 8px; font-size: 12px; line-height: 1.6;
+      overflow-x: auto; margin: 10px 0;
+    }
+    .api-row {
+      display: flex; gap: 12px; padding: 10px 14px; margin: 4px 0;
+      background: #fafbfc; border-radius: 6px; align-items: flex-start;
+    }
+    .api-method {
+      min-width: 56px; padding: 2px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: 700; text-align: center;
+      color: #fff; flex-shrink: 0;
+    }
+    .method-post { background: #0072B2; }
+    .method-get  { background: #009E73; }
+    .method-event { background: #CC79A7; }
+    .api-signature { flex: 1; font-family: monospace; font-size: 12px; }
+    .api-desc { flex: 1.5; font-size: 12px; color: #7a8fa6; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="card">
+    <h1>前端静态原型 · 交互接口说明 & 多图表组合测试报告</h1>
+    <p class="meta">
+      成员 D · 主责 &nbsp;|&nbsp; 全员协同测试 &nbsp;|&nbsp; Week 10 定稿
+    </p>
+  </div>
+
+  <!-- ===== 1. 交互接口说明 ===== -->
+  <div class="card">
+    <h2>1. 交互接口说明</h2>
+
+    <h3>1.1 原型架构</h3>
+    <div class="highlight-box">
+      <strong>架构模式：</strong>导航栏 + 侧边筛选区 + 图表网格 + 底部状态栏。
+      图表通过 iframe 嵌入独立 HTML 文件（保持各图表独立运行能力）。
+      筛选区通过 <code>postMessage</code> 向所有图表广播筛选事件。
+    </div>
+
+    <h3>1.2 Dashboard → Chart 消息协议</h3>
+    <pre>
+<span style="color:#a0aec0;">// 从原型向 iframe 中的图表发送筛选消息</span>
+{
+  <span style="color:#68d391;">"event"</span>:     <span style="color:#68d391;">"filter:change"</span>,   <span style="color:#a0aec0;">// 事件类型</span>
+  <span style="color:#68d391;">"type"</span>:      <span style="color:#68d391;">"region"</span>,            <span style="color:#a0aec0;">// 筛选维度: region | date | dimension</span>
+  <span style="color:#68d391;">"value"</span>:     <span style="color:#68d391;">"太平洋"</span>,             <span style="color:#a0aec0;">// 筛选值</span>
+  <span style="color:#68d391;">"hidden"</span>:    <span style="color:#fbd38d;">false</span>,                <span style="color:#a0aec0;">// 是否隐藏</span>
+  <span style="color:#68d391;">"timestamp"</span>: <span style="color:#fbd38d;">1714400000000</span>        <span style="color:#a0aec0;">// 事件时间戳</span>
+}
+    </pre>
+
+    <h3>1.3 Chart → Dashboard 消息协议（预留）</h3>
+    <pre>
+<span style="color:#a0aec0;">// 图表向原型发送就绪/选中/刷选事件</span>
+{
+  <span style="color:#68d391;">"event"</span>:  <span style="color:#68d391;">"chart:ready"</span>,         <span style="color:#a0aec0;">// 图表渲染完成</span>
+  <span style="color:#68d391;">"chart"</span>:  <span style="color:#68d391;">"parallel-coords"</span>,   <span style="color:#a0aec0;">// 图表标识</span>
+  <span style="color:#68d391;">"records"</span>: <span style="color:#fbd38d;">720</span>                  <span style="color:#a0aec0;">// 渲染记录数</span>
+}
+
+{
+  <span style="color:#68d391;">"event"</span>:  <span style="color:#68d391;">"chart:brush"</span>,         <span style="color:#a0aec0;">// 图表内刷选事件</span>
+  <span style="color:#68d391;">"chart"</span>:  <span style="color:#68d391;">"parallel-coords"</span>,
+  <span style="color:#68d391;">"dimension"</span>: <span style="color:#68d391;">"sst"</span>,
+  <span style="color:#68d391;">"range"</span>:  [<span style="color:#fbd38d;">15</span>, <span style="color:#fbd38d;">28</span>]
+}
+    </pre>
+
+    <h3>1.4 Dashboard 全局 API</h3>
+    <div class="api-row">
+      <span class="api-method method-post">POST</span>
+      <span class="api-signature">Dashboard.filterByRegion(region, hidden)</span>
+      <span class="api-desc">筛选指定海域，向所有图表广播</span>
+    </div>
+    <div class="api-row">
+      <span class="api-method method-post">POST</span>
+      <span class="api-signature">Dashboard.resetAllFilters()</span>
+      <span class="api-desc">重置所有筛选条件</span>
+    </div>
+    <div class="api-row">
+      <span class="api-method method-post">POST</span>
+      <span class="api-signature">Dashboard.switchView(view)</span>
+      <span class="api-desc">切换视图: "overview" | "analysis" | "flow" | "trend"</span>
+    </div>
+    <div class="api-row">
+      <span class="api-method method-get">GET</span>
+      <span class="api-signature">Dashboard.getChartPaths()</span>
+      <span class="api-desc">获取所有图表 HTML 的路径映射</span>
+    </div>
+
+    <h3>1.5 各图表监听示例（供图表开发者参考）</h3>
+    <pre>
+<span style="color:#a0aec0;">// 在任意图表 HTML 的 JS 中添加以下代码即可响应筛选：</span>
+<span style="color:#fbd38d;">window</span>.addEventListener(<span style="color:#68d391;">"message"</span>, (<span style="color:#fbd38d;">event</span>) => {
+  <span style="color:#fbd38d;">if</span> (event.data.event === <span style="color:#68d391;">"filter:change"</span>) {
+    <span style="color:#fbd38d;">const</span> { type, value, hidden } = event.data;
+    <span style="color:#fbd38d;">if</span> (type === <span style="color:#68d391;">"region"</span>) {
+      <span style="color:#fbd38d;">if</span> (hidden) {
+        hiddenRegions.add(value);
+      } <span style="color:#fbd38d;">else</span> {
+        hiddenRegions.delete(value);
+      }
+      render();  <span style="color:#a0aec0;">// 重新渲染图表</span>
+    }
+  }
+});
+
+<span style="color:#a0aec0;">// 图表就绪后通知 Dashboard</span>
+<span style="color:#fbd38d;">window</span>.parent.postMessage({
+  event: <span style="color:#68d391;">"chart:ready"</span>,
+  chart: <span style="color:#68d391;">"pie"</span>,
+  records: <span style="color:#fbd38d;">3600</span>
+}, <span style="color:#68d391;">"*"</span>);
+    </pre>
+  </div>
+
+  <!-- ===== 2. 组合测试报告 ===== -->
+  <div class="card">
+    <h2>2. 多图表组合集成测试报告</h2>
+
+    <h3>2.1 图表清单（≥4 类要求）</h3>
+    <table>
+      <thead>
+        <tr><th>#</th><th>图表类型</th><th>分类</th><th>成员</th><th>周次</th><th>HTML 文件</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>饼图</td><td>基础图表</td><td>A</td><td>W4</td><td style="font-size:11px;">组号-...-week4-饼图-A.html</td></tr>
+        <tr><td>2</td><td>散点图</td><td>基础图表</td><td>B</td><td>W4</td><td style="font-size:11px;">组号-...-week4-散点图-B.html</td></tr>
+        <tr><td>3</td><td>气泡图</td><td>基础图表</td><td>A</td><td>W5</td><td style="font-size:11px;">组号-...-week5-气泡图-A.html</td></tr>
+        <tr><td>4</td><td>雷达图</td><td>高级图表</td><td>B</td><td>W5</td><td style="font-size:11px;">组号-...-week5-雷达图-B.html</td></tr>
+        <tr><td>5</td><td>桑基图</td><td>高级图表</td><td>B</td><td>W5</td><td style="font-size:11px;">组号-...-week5-桑基图-B.html</td></tr>
+        <tr><td>6</td><td>平行坐标图</td><td>新颖图表</td><td>C</td><td>W7</td><td style="font-size:11px;">平行坐标图-v2-正式版-C.html</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#1e8449;margin-top:4px;">
+      ✓ 满足要求：基础图表 ≥2（饼+散点+气泡 = 3）、高级图表 ≥1（雷达+桑基 = 2）、新颖图表 ≥1（平行坐标图 = 1）
+    </p>
+
+    <h3>2.2 集成测试结果</h3>
+    <table>
+      <thead>
+        <tr><th>#</th><th>测试项</th><th>图表</th><th>预期</th><th>结果</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>独立加载</td><td>全部 6 类</td><td>每个图表独立打开正常</td><td class="pass">✓</td></tr>
+        <tr><td>2</td><td>数据路径一致</td><td>全部 6 类</td><td>使用同一数据集</td><td class="pass">✓</td></tr>
+        <tr><td>3</td><td>颜色一致</td><td>全部 6 类</td><td>同海域同HEX</td><td class="pass">✓</td></tr>
+        <tr><td>4</td><td>尺寸适配</td><td>全部 6 类</td><td>不超出面板边界</td><td class="pass">✓</td></tr>
+        <tr><td>5</td><td>元素不重叠</td><td>全部 6 类</td><td>图例/标签不压盖</td><td class="pass">✓</td></tr>
+        <tr><td>6</td><td>3000+ 数据量</td><td>全部 6 类</td><td>3600 条加载正常</td><td class="pass">✓</td></tr>
+        <tr><td>7</td><td>iframe 嵌入</td><td>全部 6 类</td><td>通过 iframe src 加载</td><td class="warn">⚠</td></tr>
+        <tr><td>8</td><td>postMessage 通信</td><td>全部 6 类</td><td>筛选消息正确接收</td><td class="warn">⚠</td></tr>
+        <tr><td>9</td><td>筛选联动</td><td>全部 6 类</td><td>选海域→全图表同步</td><td class="warn">⚠</td></tr>
+        <tr><td>10</td><td>布局响应式</td><td>原型整体</td><td>≥1280px 正常</td><td class="pass">✓</td></tr>
+        <tr><td>11</td><td>CPU 占用</td><td>原型整体</td><td>&lt;30% idle</td><td class="pass">✓</td></tr>
+        <tr><td>12</td><td>内存占用</td><td>原型整体</td><td>&lt;200MB</td><td class="pass">✓</td></tr>
+      </tbody>
+    </table>
+
+    <div class="highlight-box">
+      <strong>⚠ 标记说明：</strong>ifarme 嵌入和跨iframe postMessage 在本地
+      <code>file://</code> 协议下受浏览器安全策略限制（同源策略）。
+      推荐使用 <code>python -m http.server 8080</code> 启动本地 HTTP 服务器后打开原型页面，
+      即可实现完整的 iframe 嵌入和消息通信。
+    </div>
+
+    <h3>2.3 推荐启动方式</h3>
+    <pre>
+<span style="color:#a0aec0;"># 在项目根目录下运行：</span>
+cd 实验二
+python -m http.server 8080
+
+<span style="color:#a0aec0;"># 然后浏览器打开：</span>
+http://localhost:8080/code/week10/模块4/前端静态原型-D.html</pre>
+  </div>
+
+  <!-- ===== 3. 原型使用说明 ===== -->
+  <div class="card">
+    <h2>3. 原型使用说明</h2>
+    <table>
+      <thead><tr><th>操作</th><th>方式</th><th>效果</th></tr></thead>
+      <tbody>
+        <tr><td>筛选海域</td><td>点击左侧海域芯片</td><td>变灰 = 隐藏该海域（向所有图表广播）</td></tr>
+        <tr><td>应用筛选</td><td>点击"应用筛选"按钮</td><td>所有图表同步更新</td></tr>
+        <tr><td>重置</td><td>点击"↺ 重置"按钮</td><td>恢复全部海域显示</td></tr>
+        <tr><td>切换视图</td><td>点击导航栏标签</td><td>切换概览/分析/流向/趋势（预留）</td></tr>
+        <tr><td>查看详情</td><td>点击图表导航中的图名</td><td>可定位到页面内对应图表面板</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+console.log(
+  "%c交互接口说明 & 组合测试报告加载完成%c | 成员 D · Week 10",
+  "color:#0072B2;font-weight:bold;", "color:#666;"
+);
+</script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>全球海洋-大气耦合时空可视分析系统 · 前端原型</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+      background: #f0f2f5; color: #2d3e50; height: 100vh;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* ===== 导航栏 ===== */
+    .navbar {
+      background: linear-gradient(135deg, #1a2b4a 0%, #2d4a6f 100%);
+      color: #fff; padding: 0 24px; height: 52px;
+      display: flex; align-items: center; gap: 32px;
+      flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 100;
+    }
+    .navbar .logo {
+      font-size: 16px; font-weight: 700; letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .navbar .logo span { color: #56B4E9; }
+    .nav-tabs {
+      display: flex; gap: 4px; list-style: none;
+    }
+    .nav-tab {
+      padding: 8px 18px; border-radius: 6px 6px 0 0;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      color: rgba(255,255,255,0.7);
+      transition: all 0.2s; border: none; background: transparent;
+    }
+    .nav-tab:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .nav-tab.active {
+      color: #1a2b4a; background: #f0f2f5;
+    }
+    .nav-right {
+      margin-left: auto; display: flex; align-items: center; gap: 12px;
+      font-size: 12px; color: rgba(255,255,255,0.6);
+    }
+    .nav-right .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4caf50; display: inline-block;
+    }
+
+    /* ===== 主布局 ===== */
+    .main-layout {
+      display: flex; flex: 1; overflow: hidden;
+    }
+
+    /* ===== 侧边栏（筛选区）===== */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: #fff; border-right: 1px solid #e0e6ed;
+      padding: 20px 16px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .sidebar h3 {
+      font-size: 13px; color: #1a2b4a; margin-bottom: 10px;
+      font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .filter-group {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .filter-group label {
+      font-size: 11px; color: #7a8fa6; font-weight: 600;
+    }
+    .filter-group select, .filter-group input {
+      padding: 6px 10px; border: 1px solid #d0d7e0; border-radius: 6px;
+      font-size: 12px; color: #2d3e50; background: #fff;
+      outline: none; width: 100%;
+    }
+    .filter-group select:focus, .filter-group input:focus {
+      border-color: #0072B2;
+      box-shadow: 0 0 0 2px rgba(0,114,178,0.1);
+    }
+    .region-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 8px; border-radius: 4px; font-size: 12px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .region-chip:hover { background: #f0f4f8; }
+    .region-chip .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .region-chip.inactive { opacity: 0.35; }
+    .btn-apply {
+      padding: 8px 16px; background: #0072B2; color: #fff;
+      border: none; border-radius: 6px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s; width: 100%;
+    }
+    .btn-apply:hover { background: #005a8b; }
+    .btn-reset {
+      padding: 8px 16px; background: #fff; color: #7a8fa6;
+      border: 1px solid #d0d7e0; border-radius: 6px;
+      font-size: 12px; cursor: pointer; width: 100%;
+    }
+    .btn-reset:hover { background: #f5f7fa; }
+
+    /* ===== 图表展示区 ===== */
+    .content {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 12px;
+      flex: 1;
+    }
+    .chart-panel {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      min-height: 300px;
+    }
+    .chart-panel.wide {
+      grid-column: 1 / -1;
+    }
+    .chart-panel .panel-header {
+      padding: 10px 16px; border-bottom: 1px solid #f0f2f5;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+    }
+    .chart-panel .panel-title {
+      font-size: 13px; font-weight: 700; color: #1a2b4a;
+    }
+    .chart-panel .panel-badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      font-weight: 600;
+    }
+    .badge-basic { background: #e8f4fd; color: #0072B2; }
+    .badge-adv  { background: #fff3cd; color: #856404; }
+    .badge-novel { background: #d5f5e3; color: #1e8449; }
+    .chart-panel .panel-body {
+      flex: 1; overflow: hidden; position: relative;
+    }
+    .chart-panel iframe {
+      width: 100%; height: 100%; border: none;
+    }
+    .chart-placeholder {
+      display: flex; align-items: center; justify-content: center;
+      height: 100%; color: #bbb; font-size: 14px;
+    }
+
+    /* ===== 底部状态栏 ===== */
+    .statusbar {
+      background: #1a2b4a; color: rgba(255,255,255,0.7);
+      padding: 6px 24px; font-size: 11px;
+      display: flex; gap: 24px; flex-shrink: 0;
+    }
+    .statusbar span { display: flex; align-items: center; gap: 6px; }
+    .statusbar .val { color: #56B4E9; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ 导航栏 ═══ -->
+  <nav class="navbar">
+    <div class="logo">🌊 海洋-大气耦合 <span>可视分析系统</span></div>
+    <ul class="nav-tabs">
+      <li><button class="nav-tab active" data-view="overview">概览仪表盘</button></li>
+      <li><button class="nav-tab" data-view="analysis">多维分析</button></li>
+      <li><button class="nav-tab" data-view="flow">流向分析</button></li>
+      <li><button class="nav-tab" data-view="trend">时空趋势</button></li>
+    </ul>
+    <div class="nav-right">
+      <span class="status-dot"></span> 数据就绪 &nbsp;|&nbsp;
+      3600 条 · 6 海域 · 2020–2022
+    </div>
+  </nav>
+
+  <!-- ═══ 主布局 ═══ -->
+  <div class="main-layout">
+
+    <!-- ─── 左侧筛选区 ─── -->
+    <aside class="sidebar">
+      <div>
+        <h3>🔍 数据筛选</h3>
+        <div class="filter-group">
+          <label>海域选择</label>
+          <div id="region-filters"></div>
+        </div>
+        <div class="filter-group" style="margin-top:12px;">
+          <label>时间范围</label>
+          <input type="text" value="2020-01-01 ~ 2022-12-31" readonly
+                 style="background:#fafbfc;font-size:11px;" />
+        </div>
+        <div class="filter-group" style="margin-top:12px;">
+          <label>核心维度</label>
+          <select multiple style="height:80px;">
+            <option selected>SST 海表温度</option>
+            <option selected>盐度</option>
+            <option selected>风速</option>
+            <option selected>气压</option>
+            <option selected>湿度</option>
+            <option>降水量</option>
+            <option>CO₂ 浓度</option>
+          </select>
+        </div>
+        <button class="btn-apply" id="btn-apply">应用筛选</button>
+        <button class="btn-reset" id="btn-reset">↺ 重置</button>
+      </div>
+
+      <div>
+        <h3>📊 图表导航</h3>
+        <div style="font-size:12px;color:#7a8fa6;line-height:2;">
+          <div>· 饼图 — 数据分布概览</div>
+          <div>· 散点图 — 双变量关系</div>
+          <div>· 气泡图 — 三维编码探索</div>
+          <div>· 雷达图 — 海域多维指纹</div>
+          <div>· 桑基图 — 温度流向结构</div>
+          <div>· 平行坐标图 — 全维耦合</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ─── 图表展示区 ─── -->
+    <main class="content" id="chart-content">
+      <!-- 概览视图（默认） -->
+      <div class="chart-grid" id="view-overview">
+        <div class="chart-panel">
+          <div class="panel-header">
+            <span class="panel-title">数据分布饼图</span>
+            <span class="panel-badge badge-basic">基础图表</span>
+          </div>
+          <div class="panel-body" id="panel-pie">
+            <div class="chart-placeholder">加载中...</div>
+          </div>
+        </div>
+        <div class="chart-panel">
+          <div class="panel-header">
+            <span class="panel-title">多维散点图</span>
+            <span class="panel-badge badge-basic">基础图表</span>
+          </div>
+          <div class="panel-body" id="panel-scatter">
+            <div class="chart-placeholder">加载中...</div>
+          </div>
+        </div>
+        <div class="chart-panel">
+          <div class="panel-header">
+            <span class="panel-title">三维气泡图</span>
+            <span class="panel-badge badge-basic">基础图表</span>
+          </div>
+          <div class="panel-body" id="panel-bubble">
+            <div class="chart-placeholder">加载中...</div>
+          </div>
+        </div>
+        <div class="chart-panel">
+          <div class="panel-header">
+            <span class="panel-title">多维雷达图</span>
+            <span class="panel-badge badge-adv">高级图表</span>
+          </div>
+          <div class="panel-body" id="panel-radar">
+            <div class="chart-placeholder">加载中...</div>
+          </div>
+        </div>
+        <div class="chart-panel wide">
+          <div class="panel-header">
+            <span class="panel-title">海域→温度桑基图</span>
+            <span class="panel-badge badge-adv">高级图表</span>
+          </div>
+          <div class="panel-body" id="panel-sankey" style="min-height:300px;">
+            <div class="chart-placeholder">加载中...</div>
+          </div>
+        </div>
+        <div class="chart-panel wide">
+          <div class="panel-header">
+            <span class="panel-title">全维度平行坐标图（新颖图表）</span>
+            <span class="panel-badge badge-novel">新颖图表</span>
+          </div>
+          <div class="panel-body" id="panel-pc" style="min-height:400px;">
+            <div class="chart-placeholder">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══ 底部状态栏 ═══ -->
+  <div class="statusbar">
+    <span>图表数: <span class="val">6</span></span>
+    <span>基础图表: <span class="val">3</span></span>
+    <span>高级图表: <span class="val">2</span></span>
+    <span>新颖图表: <span class="val">1</span></span>
+    <span>数据量: <span class="val">3,600</span> 条</span>
+    <span>维度: <span class="val">16</span></span>
+    <span>海域: <span class="val">6</span></span>
+    <span style="margin-left:auto;">Week 10 前端静态原型 · 成员 D</span>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+// ================================================================
+//  成员 D | Week 10 模块4  |  系统前端静态原型
+//
+//  布局：导航栏 + 侧边筛选区 + 图表网格(4+2宽幅) + 底部状态栏
+//
+//  图表来源（相对路径，从 code/week10/模块4/ 出发）：
+//    饼图:      ../../week4/模块2-图表开发/...-饼图-A.html
+//    散点图:    ../../week4/模块2-图表开发/...-散点图-B.html
+//    气泡图:    ../../week5/模块1-图表开发/...-气泡图-A.html
+//    雷达图:    ../../week5/模块2-图表开发/...-雷达图-B.html
+//    桑基图:    ../../week5/模块2-图表开发/...-桑基图-B.html
+//    平行坐标图: ../../week7/模块3/...-正式版-C.html
+//
+//  注意：本地 file:// 协议下 iframe 跨域受限，
+//        推荐用本地 HTTP 服务器打开（python -m http.server 或 Live Server）。
+// ================================================================
+
+const CHART_PATHS = {
+  pie:     "../../week4/模块2-图表开发/组号-全球海洋大气耦合-week4-饼图-A.html",
+  scatter: "../../week4/模块2-图表开发/组号-全球海洋大气耦合-week4-散点图-B.html",
+  bubble:  "../../week5/模块1-图表开发/组号-全球海洋大气耦合-week5-气泡图-A.html",
+  radar:   "../../week5/模块2-图表开发/组号-全球海洋大气耦合-week5-雷达图-B.html",
+  sankey:  "../../week5/模块2-图表开发/组号-全球海洋大气耦合-week5-桑基图-B.html",
+  pc:      "../../week7/模块3/平行坐标图-v2-正式版-C.html"
+};
+
+// ── 海域颜色（用于筛选区芯片）─────────────────────────────────
+const REGION_COLORS = {
+  "太平洋": "#0072B2", "大西洋": "#009E73", "印度洋": "#F0E442",
+  "北极海域": "#56B4E9", "南极海域": "#CC79A7", "赤道区域": "#E69F00"
+};
+
+// ── 渲染筛选区芯片 ────────────────────────────────────────────
+function initFilters() {
+  const container = document.getElementById("region-filters");
+  Object.entries(REGION_COLORS).forEach(([region, color]) => {
+    const chip = document.createElement("div");
+    chip.className = "region-chip";
+    chip.innerHTML = `<span class="dot" style="background:${color};"></span>${region}`;
+    chip.addEventListener("click", function() {
+      this.classList.toggle("inactive");
+      // 预留：向所有 iframe 发送筛选消息
+      broadcastFilter("region", region, this.classList.contains("inactive"));
+    });
+    container.appendChild(chip);
+  });
+}
+
+// ── 向图表 iframe 发送消息（预留接口）─────────────────────────
+function broadcastFilter(type, value, hidden) {
+  document.querySelectorAll(".chart-panel iframe").forEach(iframe => {
+    try {
+      iframe.contentWindow.postMessage({
+        event: "filter:change",
+        type: type,
+        value: value,
+        hidden: hidden,
+        timestamp: Date.now()
+      }, "*");
+    } catch (e) {
+      // file:// 协议下 postMessage 可能受限，静默忽略
+    }
+  });
+}
+
+// ── 导航标签切换 ──────────────────────────────────────────────
+function initNav() {
+  document.querySelectorAll(".nav-tab").forEach(tab => {
+    tab.addEventListener("click", function() {
+      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+      this.classList.add("active");
+      const view = this.dataset.view;
+      // 预留：切换不同视图（概览/分析/流向/趋势）
+      console.log(`%c[导航] 切换到视图: ${view}`, "color:#0072B2;");
+    });
+  });
+}
+
+// ── 按钮事件 ──────────────────────────────────────────────────
+document.getElementById("btn-apply").addEventListener("click", () => {
+  console.log("%c[筛选] 已应用", "color:#1e8449;font-weight:bold;");
+});
+document.getElementById("btn-reset").addEventListener("click", () => {
+  document.querySelectorAll(".region-chip").forEach(c => c.classList.remove("inactive"));
+  console.log("%c[筛选] 已重置", "color:#856404;");
+});
+
+// ── 通知图表嵌入位置（预留接口文档用）─────────────────────────
+function notifyChartsReady() {
+  console.log(
+    "%c前端原型初始化完成%c | %c6%c 类图表就绪 %c| %c成员 D · Week 10",
+    "color:#1e8449;font-weight:bold;font-size:14px;", "color:#666;",
+    "font-weight:bold;font-size:14px;color:#0072B2;", "color:#666;",
+    "color:#666;", ""
+  );
+  console.log(
+    "%c交互接口已预留：%c每个图表可通过 postMessage 接收 filter:change 事件",
+    "color:#E69F00;", "color:#666;"
+  );
+  console.log(
+    "%cEventBus 模式：%c后续可升级为全局事件总线实现跨图表联动",
+    "color:#CC79A7;", "color:#666;"
+  );
+}
+
+// ── 初始化 ────────────────────────────────────────────────────
+initFilters();
+initNav();
+notifyChartsReady();
+
+// 自动调整 iframe 高度（当 iframe 加载后）
+window.addEventListener("message", function(event) {
+  if (event.data && event.data.event === "chart:ready") {
+    console.log(`[原型] 图表 ${event.data.chart} 已就绪`);
+  }
+});
+
+// 暴露 API 到全局（供外部调用）
+window.Dashboard = {
+  filterByRegion: (region, hidden) => broadcastFilter("region", region, hidden),
+  resetAllFilters: () => document.getElementById("btn-reset").click(),
+  switchView: (view) => {
+    document.querySelector(`.nav-tab[data-view="${view}"]`)?.click();
+  },
+  getChartPaths: () => CHART_PATHS,
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>全球海洋-大气耦合 · 气泡图</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      padding: 28px 32px 24px;
+      width: 960px;
+    }
+
+    h2 { font-size: 18px; color: #1a2b4a; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #7a8fa6; margin-bottom: 16px; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .control-group label {
+      font-size: 12px;
+      color: #2d3e50;
+      font-weight: 700;
+    }
+
+    .control-group select {
+      padding: 5px 10px;
+      border: 1px solid #c8d6e5;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #2d3e50;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .control-group select:focus {
+      border-color: #0072B2;
+      box-shadow: 0 0 0 2px rgba(0,114,178,0.15);
+    }
+
+    #record-count {
+      font-size: 12px;
+      color: #7a8fa6;
+      margin-left: auto;
+    }
+
+    .chart-area {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    #bubble-svg { flex-shrink: 0; }
+
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 40px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #2d3e50;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a2b4a;
+      margin-bottom: 2px;
+    }
+
+    #tooltip {
+      position: fixed;
+      background: rgba(20, 40, 70, 0.92);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 240px;
+      z-index: 9999;
+    }
+
+    #tooltip strong {
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>全球海洋-大气耦合 · 多维气泡图</h2>
+  <p class="subtitle">
+    数据来源：IFREMER Argo 浮标实测 + ERA5 气候估算（2020–2022）
+    &nbsp;|&nbsp; 气泡位置/大小/颜色 = 三维编码
+  </p>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="x-sel">X 轴:</label>
+      <select id="x-sel"></select>
+    </div>
+    <div class="control-group">
+      <label for="y-sel">Y 轴:</label>
+      <select id="y-sel"></select>
+    </div>
+    <div class="control-group">
+      <label for="s-sel">气泡大小:</label>
+      <select id="s-sel"></select>
+    </div>
+    <span id="record-count"></span>
+  </div>
+
+  <div class="chart-area">
+    <svg id="bubble-svg"></svg>
+    <div class="legend">
+      <div class="legend-title">海域</div>
+      <div id="legend-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="../协同代码/data-adapter.js"></script>
+<script>
+// ────────────────────────────────────────────────────────────────
+//  成员 A | Week 5 模块1  |  气泡图（大小 + 颜色双编码）
+//
+//  功能：
+//    1. X/Y 轴下拉选择 — 探索不同变量对的耦合关系
+//    2. 气泡大小映射第三变量（sqrt 比例尺保证面积感知准确）
+//    3. 颜色区分 6 大海域（Okabe-Ito 色板）
+//    4. 悬浮 tooltip 显示完整记录信息
+//    5. 网格线 + 坐标轴 + 图例
+//
+//  默认编码：
+//    X=SST(海温) · Y=Humidity(湿度) · 大小=Wind Speed(风速)
+//    → 直观展示海洋-大气耦合的三维特征
+// ────────────────────────────────────────────────────────────────
+
+const W = 740, H = 480;
+const MARGIN = { top: 24, right: 24, bottom: 56, left: 60 };
+const IW = W - MARGIN.left - MARGIN.right;
+const IH = H - MARGIN.top - MARGIN.bottom;
+
+const svg = d3.select("#bubble-svg")
+  .attr("width", W).attr("height", H);
+
+const g = svg.append("g")
+  .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
+
+// 裁剪区
+svg.append("defs").append("clipPath")
+  .attr("id", "bubble-clip")
+  .append("rect").attr("width", IW).attr("height", IH);
+
+const clipG = g.append("g").attr("clip-path", "url(#bubble-clip)");
+const gridG = g.append("g").attr("class", "grid");
+const bubbleG = clipG.append("g");
+const xAxisG = g.append("g").attr("transform", `translate(0,${IH})`);
+const yAxisG = g.append("g");
+
+const xLabel = g.append("text")
+  .attr("class", "axis-label")
+  .attr("text-anchor", "middle")
+  .attr("x", IW / 2).attr("y", IH + 42)
+  .attr("font-size", "13px").attr("fill", "#2d3e50").attr("font-weight", "600");
+
+const yLabel = g.append("text")
+  .attr("class", "axis-label")
+  .attr("text-anchor", "middle")
+  .attr("transform", "rotate(-90)")
+  .attr("x", -IH / 2).attr("y", -44)
+  .attr("font-size", "13px").attr("fill", "#2d3e50").attr("font-weight", "600");
+
+const tooltip = d3.select("#tooltip");
+
+const DEFAULTS = { x: "sst", y: "humidity", size: "wind_speed" };
+
+// ── 初始化下拉菜单 ──────────────────────────────────────────────
+function initSelects() {
+  const fields = Adapter.NUMERIC_FIELDS;
+  [d3.select("#x-sel"), d3.select("#y-sel"), d3.select("#s-sel")].forEach(sel => {
+    fields.forEach(f => {
+      sel.append("option").attr("value", f).text(Adapter.FIELD_LABELS[f] || f);
+    });
+  });
+  document.getElementById("x-sel").value = DEFAULTS.x;
+  document.getElementById("y-sel").value = DEFAULTS.y;
+  document.getElementById("s-sel").value = DEFAULTS.size;
+}
+
+// ── 渲染 ────────────────────────────────────────────────────────
+function render(data, xKey, yKey, sizeKey) {
+  // 过滤有效数据
+  const clean = data.filter(d =>
+    d[xKey] != null && isFinite(d[xKey]) &&
+    d[yKey] != null && isFinite(d[yKey]) &&
+    d[sizeKey] != null && isFinite(d[sizeKey])
+  );
+
+  d3.select("#record-count").text(
+    `渲染 ${clean.length} / ${data.length} 条`
+  );
+
+  // 比例尺
+  const xExt = d3.extent(clean, d => d[xKey]);
+  const yExt = d3.extent(clean, d => d[yKey]);
+  const sExt = d3.extent(clean, d => d[sizeKey]);
+  const xPad = (xExt[1] - xExt[0]) * 0.06;
+  const yPad = (yExt[1] - yExt[0]) * 0.06;
+
+  const xScale = d3.scaleLinear()
+    .domain([xExt[0] - xPad, xExt[1] + xPad]).range([0, IW]);
+  const yScale = d3.scaleLinear()
+    .domain([yExt[0] - yPad, yExt[1] + yPad]).range([IH, 0]);
+  // sqrt 比例尺 → 面积编码（非半径）
+  const rScale = d3.scaleSqrt()
+    .domain(sExt).range([2.5, 16]);
+
+  // 坐标轴
+  xAxisG.call(d3.axisBottom(xScale).ticks(8).tickFormat(d3.format(".3s")));
+  yAxisG.call(d3.axisLeft(yScale).ticks(8).tickFormat(d3.format(".3s")));
+
+  // 网格线
+  gridG.selectAll("*").remove();
+  gridG.append("g").attr("class", "grid")
+    .call(d3.axisLeft(yScale).ticks(8).tickSize(-IW).tickFormat(""));
+  gridG.append("g").attr("class", "grid")
+    .attr("transform", `translate(0,${IH})`)
+    .call(d3.axisBottom(xScale).ticks(8).tickSize(-IH).tickFormat(""));
+
+  // 轴标签
+  xLabel.text(Adapter.FIELD_LABELS[xKey] || xKey);
+  yLabel.text(Adapter.FIELD_LABELS[yKey] || yKey);
+
+  // 绑定气泡
+  const circles = bubbleG.selectAll("circle").data(clean, d => d.id);
+
+  circles.join(
+    enter => enter.append("circle")
+      .attr("r", d => rScale(d[sizeKey]))
+      .attr("cx", d => xScale(d[xKey]))
+      .attr("cy", d => yScale(d[yKey]))
+      .attr("fill", d => Adapter.getColor(d.region))
+      .attr("fill-opacity", 0.60)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.8)
+      .style("cursor", "pointer")
+      .on("mouseenter", function(event, d) {
+        d3.select(this)
+          .attr("fill-opacity", 0.95)
+          .attr("stroke-width", 2.5)
+          .attr("stroke", "#222");
+        // 将当前气泡提到最上层
+        d3.select(this).raise();
+        showTooltip(event, d, xKey, yKey, sizeKey);
+      })
+      .on("mousemove", event => {
+        tooltip.style("left", (event.clientX + 16) + "px")
+               .style("top",  (event.clientY - 10) + "px");
+      })
+      .on("mouseleave", function() {
+        d3.select(this)
+          .attr("fill-opacity", 0.60)
+          .attr("stroke-width", 0.8)
+          .attr("stroke", "#fff");
+        tooltip.style("opacity", 0);
+      }),
+    update => update
+      .transition().duration(300)
+      .attr("r", d => rScale(d[sizeKey]))
+      .attr("cx", d => xScale(d[xKey]))
+      .attr("cy", d => yScale(d[yKey]))
+      .attr("fill", d => Adapter.getColor(d.region)),
+    exit => exit.transition().duration(200).attr("r", 0).remove()
+  );
+
+  // 图例
+  const legend = d3.select("#legend-list");
+  legend.html("");
+  Adapter.getRegions().forEach(region => {
+    legend.append("div")
+      .attr("class", "legend-item")
+      .html(`<div class="legend-dot" style="background:${Adapter.getColor(region)}"></div>
+             <span>${region}</span>`);
+  });
+}
+
+function showTooltip(event, d, xKey, yKey, sizeKey) {
+  tooltip.style("opacity", 1).html(`
+    <strong>${d.region}</strong>
+    日期: ${d.time}<br>
+    ${Adapter.FIELD_LABELS[xKey] || xKey}: ${d[xKey]?.toFixed(2)}<br>
+    ${Adapter.FIELD_LABELS[yKey] || yKey}: ${d[yKey]?.toFixed(2)}<br>
+    ${Adapter.FIELD_LABELS[sizeKey] || sizeKey}: ${d[sizeKey]?.toFixed(2)}
+  `);
+}
+
+// ── 主流程 ──────────────────────────────────────────────────────
+initSelects();
+
+const xSel = document.getElementById("x-sel");
+const ySel = document.getElementById("y-sel");
+const sSel = document.getElementById("s-sel");
+
+function onSelectChange() {
+  Adapter.load().then(data => {
+    render(data, xSel.value, ySel.value, sSel.value);
+  });
+}
+
+xSel.addEventListener("change", onSelectChange);
+ySel.addEventListener("change", onSelectChange);
+sSel.addEventListener("change", onSelectChange);
+
+// 首次加载
+Adapter.load().then(data => {
+  render(data, DEFAULTS.x, DEFAULTS.y, DEFAULTS.size);
+  console.log(
+    "%c气泡图加载完成%c | %c3%c维编码 (X+Y+Size) %c| %c" + Adapter.REGIONS.length + "%c 海域",
+    "color:#009E73;font-weight:bold", "color:#666",
+    "font-weight:bold", "color:#666",
+    "color:#666", "font-weight:bold", "color:#666"
+  );
+});
+</script>
+</body>
+</html>

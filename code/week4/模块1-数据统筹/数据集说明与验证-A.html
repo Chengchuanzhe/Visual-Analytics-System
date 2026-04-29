@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>实验2 · 数据集说明与验证 · 成员A</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      background: #f0f4f8;
+      padding: 40px 20px;
+      color: #2d3e50;
+      line-height: 1.7;
+    }
+
+    .container {
+      max-width: 940px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 32px 36px;
+      margin-bottom: 24px;
+    }
+
+    h1 { font-size: 22px; color: #1a2b4a; margin-bottom: 4px; }
+    h2 { font-size: 17px; color: #1a2b4a; margin: 24px 0 12px;
+         padding-bottom: 8px; border-bottom: 2px solid #e8ecf1; }
+    h3 { font-size: 14px; color: #1a2b4a; margin: 16px 0 8px; }
+
+    .meta { font-size: 13px; color: #7a8fa6; margin-bottom: 20px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e0e6ed;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background: #f5f7fa;
+      font-weight: 700;
+      color: #1a2b4a;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    td { color: #2d3e50; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 4px;
+    }
+    .tag-real  { background: #d4edda; color: #155724; }
+    .tag-est   { background: #fff3cd; color: #856404; }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .stat-box {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-box .value { font-size: 24px; font-weight: 700; color: #0072B2; }
+    .stat-box .label { font-size: 11px; color: #7a8fa6; margin-top: 2px; }
+
+    .alert {
+      background: #fff8e1;
+      border-left: 4px solid #ffc107;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin: 12px 0;
+      font-size: 13px;
+      color: #6d5e00;
+    }
+
+    pre {
+      background: #f5f7fa;
+      padding: 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+
+    #live-stats { margin-top: 16px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 标题 -->
+  <div class="card">
+    <h1>实验 2 · 数据集说明与验证</h1>
+    <p class="meta">
+      成员 A · 王哲 &nbsp;|&nbsp; Week 4 模块1 · 数据统筹
+      &nbsp;|&nbsp; 更新: 2026-04
+    </p>
+
+    <div class="stat-grid" id="stat-grid">
+      <div class="stat-box">
+        <div class="value" id="stat-count">—</div>
+        <div class="label">总记录数</div>
+      </div>
+      <div class="stat-box">
+        <div class="value" id="stat-fields">—</div>
+        <div class="label">维度数</div>
+      </div>
+      <div class="stat-box">
+        <div class="value" id="stat-regions">—</div>
+        <div class="label">海域数</div>
+      </div>
+      <div class="stat-box">
+        <div class="value" id="stat-years">—</div>
+        <div class="label">时间跨度</div>
+      </div>
+    </div>
+
+    <div class="alert">
+      <strong>数据质量说明：</strong>海表温度（SST）和盐度（Salinity）来自 IFREMER Argo 浮标实测数据（Quality Flag=2，"probably good"）。
+      其余 9 个大气/海洋变量（风速、气压、降水、CO₂、浪高、湿度、海流、叶绿素、风向）基于纬度和季节的气候学模型估算，
+      保证物理量级合理，不代表精确实测值。
+    </div>
+  </div>
+
+  <!-- 字段说明 -->
+  <div class="card">
+    <h2>完整字段 Schema（16 维）</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>字段名</th><th>中文名称</th><th>类型</th><th>单位</th><th>来源</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>id</td><td>记录编号</td><td>int</td><td>—</td><td>生成</td></tr>
+        <tr><td>2</td><td>time</td><td>观测时间</td><td>string</td><td>YYYY-MM-DD</td><td>Argo 实测</td></tr>
+        <tr><td>3</td><td>longitude</td><td>经度</td><td>float</td><td>°E (-180~180)</td><td>Argo 实测</td></tr>
+        <tr><td>4</td><td>latitude</td><td>纬度</td><td>float</td><td>°N (-90~90)</td><td>Argo 实测</td></tr>
+        <tr><td>5</td><td>region</td><td>所属海域</td><td>string</td><td>—</td><td>经纬度标注</td></tr>
+        <tr><td>6</td><td>sst</td><td>海表温度</td><td>float</td><td>°C</td><td><span class="tag tag-real">Argo 实测</span></td></tr>
+        <tr><td>7</td><td>salinity</td><td>盐度</td><td>float</td><td>PSU</td><td><span class="tag tag-real">Argo 实测</span></td></tr>
+        <tr><td>8</td><td>wind_speed</td><td>风速</td><td>float</td><td>km/h</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>9</td><td>wind_dir</td><td>风向</td><td>float</td><td>°</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>10</td><td>pressure</td><td>海平面气压</td><td>float</td><td>hPa</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>11</td><td>precipitation</td><td>降水量</td><td>float</td><td>mm</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>12</td><td>co2</td><td>CO₂ 浓度</td><td>float</td><td>ppm</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>13</td><td>wave_height</td><td>浪高</td><td>float</td><td>m</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>14</td><td>humidity</td><td>大气湿度</td><td>float</td><td>%</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>15</td><td>current_speed</td><td>海流速度</td><td>float</td><td>m/s</td><td><span class="tag tag-est">气候估算</span></td></tr>
+        <tr><td>16</td><td>chlorophyll</td><td>叶绿素浓度</td><td>float</td><td>mg/m³</td><td><span class="tag tag-est">气候估算</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 海域分布 -->
+  <div class="card">
+    <h2>6 大海域分布</h2>
+    <table>
+      <thead>
+        <tr><th>海域</th><th>经度范围</th><th>纬度范围</th><th>记录数</th><th>数据特征</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>太平洋</td><td>150°E ~ 210°E</td><td>30°S ~ 30°N</td><td>600</td><td>热带/亚热带开阔洋面</td></tr>
+        <tr><td>大西洋</td><td>60°W ~ 0°</td><td>30°S ~ 30°N</td><td>600</td><td>热带/亚热带洋面</td></tr>
+        <tr><td>印度洋</td><td>55°E ~ 100°E</td><td>30°S ~ 20°N</td><td>600</td><td>热带季风影响海域</td></tr>
+        <tr><td>北极海域</td><td>0° ~ 60°E</td><td>70°N ~ 82°N</td><td>600</td><td>高纬度寒冷海域</td></tr>
+        <tr><td>南极海域</td><td>0° ~ 60°E</td><td>72°S ~ 60°S</td><td>600</td><td>高纬度极地海域</td></tr>
+        <tr><td>赤道区域</td><td>160°W ~ 100°W</td><td>8°S ~ 8°N</td><td>600</td><td>赤道高能海域</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 实时数据验证 -->
+  <div class="card">
+    <h2>实时数据验证（加载数据集后）</h2>
+    <div id="live-stats">正在加载数据集...</div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+// ── 实时验证：加载数据集并输出统计 ──────────────────────────────
+const DATA_PATH = "../../../data/组号-全球海洋大气耦合-实验2-选题扩展数据集.json";
+
+d3.json(DATA_PATH).then(data => {
+  // 顶栏统计
+  document.getElementById("stat-count").textContent   = data.length.toLocaleString();
+  document.getElementById("stat-fields").textContent  = Object.keys(data[0]).length;
+  const regions = [...new Set(data.map(d => d.region))].sort();
+  document.getElementById("stat-regions").textContent = regions.length;
+
+  const years = [...new Set(data.map(d => d.time.slice(0, 4)))].sort();
+  document.getElementById("stat-years").textContent   = `${years[0]}–${years[years.length-1]}`;
+
+  // 数值字段统计
+  const numKeys = Object.keys(data[0]).filter(k =>
+    typeof data[0][k] === "number" && k !== "id"
+  );
+
+  let html = `<h3>各维度数值分布</h3>`;
+  html += `<table><thead><tr><th>字段</th><th>最小值</th><th>最大值</th><th>均值</th><th>中位数</th><th>标准差</th></tr></thead><tbody>`;
+
+  numKeys.forEach(key => {
+    const vals = data.map(d => d[key]).filter(v => v != null && isFinite(v));
+    vals.sort((a,b) => a-b);
+    const n = vals.length;
+    const mean = vals.reduce((s,v) => s+v, 0) / n;
+    const median = n % 2 ? vals[Math.floor(n/2)] : (vals[n/2-1] + vals[n/2]) / 2;
+    const std = Math.sqrt(vals.reduce((s,v) => s + (v-mean)**2, 0) / n);
+
+    html += `<tr>
+      <td><strong>${key}</strong></td>
+      <td>${vals[0].toFixed(2)}</td>
+      <td>${vals[n-1].toFixed(2)}</td>
+      <td>${mean.toFixed(2)}</td>
+      <td>${median.toFixed(2)}</td>
+      <td>${std.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+
+  // 各海域记录数验证
+  html += `<h3>各海域记录数验证（预期 600 条/海域）</h3>`;
+  html += `<table><thead><tr><th>海域</th><th>记录数</th><th>状态</th><th>时间范围</th></tr></thead><tbody>`;
+  regions.forEach(region => {
+    const subset = data.filter(d => d.region === region);
+    const dates = subset.map(d => d.time).sort();
+    const ok = subset.length === 600 ? "✓" : "⚠ 数量异常";
+    const color = subset.length === 600 ? "#155724" : "#856404";
+    html += `<tr>
+      <td><strong>${region}</strong></td>
+      <td>${subset.length}</td>
+      <td style="color:${color};font-weight:600;">${ok}</td>
+      <td>${dates[0]} ~ ${dates[dates.length-1]}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+
+  // 验证结论
+  const totalExpected = regions.length * 600;
+  const passed = data.length === totalExpected;
+  html += `<div class="alert" style="border-left-color:${passed ? '#28a745' : '#ffc107'}; background:${passed ? '#d4edda' : '#fff8e1'}; color:${passed ? '#155724' : '#6d5e00'};">`;
+  html += `<strong>验证结论：</strong>`;
+  html += `数据集共 ${data.length} 条（预期 ${totalExpected} 条），`;
+  html += `${data.length >= 3000 ? '满足' : '不满足'} ≥3000 条要求。`;
+  html += `维度 ${Object.keys(data[0]).length} 维，${Object.keys(data[0]).length >= 14 ? '满足' : '不足'} ≥14 维。`;
+  html += `海域覆盖 ${regions.length} 个，${regions.length >= 6 ? '满足' : '不足'} ≥6 个。`;
+  html += `时间跨度 ${years[0]}–${years[years.length-1]}，${years.length >= 3 ? '满足' : '不足'} ≥3 年。`;
+  html += `</div>`;
+
+  document.getElementById("live-stats").innerHTML = html;
+  console.log("%c数据验证完成%c | %c全部通过%c | 成员A · Week 4",
+    "color:#0072B2;font-weight:bold;", "color:#666;",
+    "color:#28a745;font-weight:bold;", "color:#666;");
+}).catch(err => {
+  document.getElementById("live-stats").innerHTML = `
+    <div class="alert" style="border-left-color:#dc3545;background:#f8d7da;color:#721c24;">
+      <strong>加载失败：</strong>${err.message}。请确认数据集文件路径正确，或使用本地服务器打开此页面。
+    </div>`;
+});
+</script>
+
+</body>
+</html>

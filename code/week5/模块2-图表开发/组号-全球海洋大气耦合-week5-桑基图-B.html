@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>全球海洋-大气耦合 · 桑基图</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+      padding: 28px 36px 24px;
+      width: 1060px;
+    }
+
+    h2 { font-size: 18px; color: #1a2b4a; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #7a8fa6; margin-bottom: 20px; }
+
+    #sankey-svg {
+      display: block;
+    }
+
+    /* 桑基节点 */
+    .sankey-node rect {
+      fill-opacity: 0.85;
+      stroke: #fff;
+      stroke-width: 1.5;
+      cursor: pointer;
+      transition: fill-opacity 0.2s;
+    }
+
+    .sankey-node rect:hover {
+      fill-opacity: 1;
+    }
+
+    .sankey-node text {
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    /* 桑基链接 */
+    .sankey-link {
+      fill: none;
+      stroke-opacity: 0.35;
+      transition: stroke-opacity 0.2s;
+      cursor: pointer;
+    }
+
+    .sankey-link:hover {
+      stroke-opacity: 0.75;
+    }
+
+    .sankey-link.dimmed {
+      stroke-opacity: 0.06;
+    }
+
+    #tooltip {
+      position: fixed;
+      background: rgba(20, 40, 70, 0.92);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 260px;
+      z-index: 9999;
+    }
+
+    #tooltip strong {
+      font-size: 14px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #7a8fa6;
+      margin-top: 16px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>全球海洋-大气耦合 · 桑基图 — 海域 → 海温区间流向</h2>
+  <p class="subtitle">
+    数据来源：IFREMER Argo 浮标实测（2020–2022）
+    &nbsp;|&nbsp; 左侧=6海域，右侧=SST温度区间，
+    流量宽度=落入该温度区间的采样记录数
+  </p>
+
+  <svg id="sankey-svg"></svg>
+
+  <p class="note">
+    悬浮流带或节点查看详情。此图揭示各海域的温度分布结构——
+    极地海域流向冷水，热带海域流向暖水，中纬度海域呈现混合特征。
+  </p>
+</div>
+
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<script src="../协同代码/data-adapter.js"></script>
+<script>
+// ────────────────────────────────────────────────────────────────
+//  成员 B | Week 5 模块2  |  桑基图（高级图表）
+//
+//  设计说明：
+//    左侧 = 6 大海域（源），右侧 = 4 个 SST 温度区间（目标）
+//    每条流带宽度 = 该海域中落入该温度区间的记录数量
+//
+//  选题适配：
+//    - 展示海洋温度的空间分布结构
+//    - 极地海域 → 冷水、热带 → 暖水的"流量模式"
+//    - 悬浮高亮某一海域时，追踪其温度分布
+//
+//  交互：
+//    - 悬浮节点/流带 → 高亮 + tooltip
+//    - 点击节点 → 突出该节点及其关联流向
+// ────────────────────────────────────────────────────────────────
+
+const W = 1020, H = 480;
+const MARGIN = { top: 10, right: 20, bottom: 10, left: 20 };
+
+const svg = d3.select("#sankey-svg")
+  .attr("width", W).attr("height", H)
+  .attr("viewBox", `0 0 ${W} ${H}`);
+
+const g = svg.append("g")
+  .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
+
+const IW = W - MARGIN.left - MARGIN.right;
+const IH = H - MARGIN.top - MARGIN.bottom;
+
+const tooltip = d3.select("#tooltip");
+
+// ── 加载数据 & 构建桑基图 ───────────────────────────────────────
+Adapter.load().then(data => {
+  const sankeyData = Adapter.toSankeyData(data);
+
+  // 桑基布局
+  const sankey = d3.sankey()
+    .nodeWidth(24)
+    .nodePadding(16)
+    .extent([[0, 0], [IW, IH]]);
+
+  const { nodes, links } = sankey({
+    nodes: sankeyData.nodes.map(d => ({ ...d })),
+    links: sankeyData.links.map(d => ({ ...d }))
+  });
+
+  // 颜色映射
+  function linkColor(d) {
+    const sourceName = d.source.name;
+    return Adapter.getColor(sourceName);
+  }
+
+  // ── 绘制链接（流带）────────────────────────────────────────
+  const linkG = g.append("g");
+
+  const linkPaths = linkG.selectAll("path")
+    .data(links)
+    .join("path")
+    .attr("class", "sankey-link")
+    .attr("d", d3.sankeyLinkHorizontal())
+    .attr("stroke", d => linkColor(d))
+    .attr("stroke-width", d => Math.max(1, d.width))
+    .on("mouseenter", function(event, d) {
+      // 高亮当前流，调暗其他
+      linkPaths.classed("dimmed", l => l !== d);
+      d3.select(this).attr("stroke-opacity", 0.9);
+      tooltip.style("opacity", 1).html(`
+        <strong>${d.source.name} → ${d.target.name}</strong>
+        记录数: <b>${d.value}</b> 条<br>
+        占该海域比例:
+        <b>${(d.value / d.source.value * 100).toFixed(1)}%</b>
+      `);
+    })
+    .on("mousemove", event => {
+      tooltip.style("left", (event.clientX + 14) + "px")
+             .style("top",  (event.clientY - 10) + "px");
+    })
+    .on("mouseleave", function() {
+      linkPaths.classed("dimmed", false);
+      d3.select(this).attr("stroke-opacity", 0.35);
+      tooltip.style("opacity", 0);
+    });
+
+  // ── 绘制节点 ──────────────────────────────────────────────
+  const nodeG = g.append("g");
+
+  const nodeRects = nodeG.selectAll("g")
+    .data(nodes)
+    .join("g")
+    .attr("class", "sankey-node")
+    .on("mouseenter", function(event, d) {
+      // 高亮关联的链接
+      const relatedLinks = links.filter(
+        l => l.source === d || l.target === d
+      );
+      linkPaths.classed("dimmed", l => !relatedLinks.includes(l));
+
+      const sourceTotal = d.sourceLinks
+        ? d3.sum(d.sourceLinks, l => l.value)
+        : 0;
+      const targetTotal = d.targetLinks
+        ? d3.sum(d.targetLinks, l => l.value)
+        : 0;
+
+      tooltip.style("opacity", 1).html(`
+        <strong>${d.name}</strong>
+        ${d.sourceLinks ? `流出: <b>${sourceTotal}</b> 条` : ""}
+        ${d.targetLinks ? `流入: <b>${targetTotal}</b> 条` : ""}
+      `);
+    })
+    .on("mousemove", event => {
+      tooltip.style("left", (event.clientX + 14) + "px")
+             .style("top",  (event.clientY - 10) + "px");
+    })
+    .on("mouseleave", function() {
+      linkPaths.classed("dimmed", false);
+      tooltip.style("opacity", 0);
+    });
+
+  nodeRects.append("rect")
+    .attr("x", d => d.x0)
+    .attr("y", d => d.y0)
+    .attr("height", d => Math.max(0, d.y1 - d.y0))
+    .attr("width", d => d.x1 - d.x0)
+    .attr("fill", d => {
+      // 海域节点用对应颜色，温度区间节点用灰色
+      if (d.group === "region") {
+        return Adapter.getColor(d.name);
+      }
+      return "#5a6d80";
+    });
+
+  // 节点标签
+  nodeRects.append("text")
+    .attr("x", d => d.x0 < IW / 2 ? d.x1 + 6 : d.x0 - 6)
+    .attr("y", d => (d.y0 + d.y1) / 2)
+    .attr("dy", "0.35em")
+    .attr("text-anchor", d => d.x0 < IW / 2 ? "start" : "end")
+    .attr("fill", "#2d3e50")
+    .text(d => d.name);
+
+  // 节点值标签
+  nodeRects.append("text")
+    .attr("x", d => d.x0 < IW / 2 ? d.x1 + 6 : d.x0 - 6)
+    .attr("y", d => (d.y0 + d.y1) / 2 + 15)
+    .attr("dy", "0.35em")
+    .attr("text-anchor", d => d.x0 < IW / 2 ? "start" : "end")
+    .attr("font-size", "11px")
+    .attr("fill", "#7a8fa6")
+    .text(d => {
+      const total = d.sourceLinks
+        ? d3.sum(d.sourceLinks, l => l.value)
+        : 0;
+      return total ? total + " 条" : "";
+    });
+
+  console.log(
+    "%c桑基图加载完成%c | %c" + nodes.length + "%c 节点 %c| %c" +
+    links.length + "%c 流带",
+    "color:#E69F00;font-weight:bold", "color:#666",
+    "font-weight:bold", "color:#666",
+    "color:#666", "font-weight:bold", "color:#666"
+  );
+});
+</script>
+</body>
+</html>

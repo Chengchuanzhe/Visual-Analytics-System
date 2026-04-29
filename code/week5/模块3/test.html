@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平行坐标图 — 全球海洋-大气多维耦合分析</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="type.css">
+    <style>
+        /* 本图表特有样式 */
+        .pc-line {
+            fill: none;
+            stroke-width: 1.2;
+            stroke-opacity: 0.35;
+            transition: stroke-opacity 0.25s ease,
+                        stroke-width 0.25s ease;
+        }
+        .pc-line.highlighted {
+            stroke-opacity: 0.90;
+            stroke-width: 2.0;
+        }
+        .pc-line.dimmed {
+            stroke-opacity: 0.06;
+        }
+        .axis-bg {
+            fill: #f9f9f9;
+            cursor: pointer;
+        }
+        .axis-bg:hover {
+            fill: #f0f0f0;
+        }
+        .legend-item {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .legend-item.inactive {
+            opacity: 0.25;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <div class="chart-title">全球海洋-大气多维耦合平行坐标图</div>
+        <div class="chart-subtitle">
+            展示 6 大海域在 8 项环境指标上的分布差异与关联模式
+            （基于 Argo 浮标实采 + ERA5 气候估算，2020–2022）
+        </div>
+        <div id="chart"></div>
+        <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  平行坐标图 — Parallel Coordinates Plot
+        //  成员 C | Week 5 模块3  |  新颖图表原型
+        //
+        //  选题适配说明：
+        //    海洋-大气耦合分析的核心是同时观察多个物理量（SST、盐度、
+        //    风速、气压、降水、CO₂、湿度、海流等）在不同海域的变化模式。
+        //    平行坐标图让分析师一眼看到多维度的"指纹"——每条折线是
+        //    一个采样点，不同海域用不同颜色，维度间的交叉/聚集揭示
+        //    海洋与大气变量之间的耦合关系。
+        //
+        //  数据：../../data/组号-全球海洋大气耦合-实验2-选题扩展数据集.json
+        //        3600 条记录，取 1/5 采样 ≈ 720 条用于渲染
+        // ============================================================
+
+        // ---- 0. 配置 ----
+        const DIMENSIONS = [
+            { key: "sst",            label: "海表温度\nSST (°C)" },
+            { key: "salinity",       label: "盐度\n(PSU)" },
+            { key: "wind_speed",     label: "风速\n(km/h)" },
+            { key: "pressure",       label: "海平面气压\n(hPa)" },
+            { key: "precipitation",  label: "降水量\n(mm)" },
+            { key: "co2",            label: "CO₂浓度\n(ppm)" },
+            { key: "humidity",       label: "大气湿度\n(%)" },
+            { key: "current_speed",  label: "海流速度\n(m/s)" }
+        ];
+
+        // Okabe-Ito 配色 —— 与 type.css 保持一致
+        const REGION_COLORS = {
+            "太平洋":   "#0072B2",
+            "大西洋":   "#009E73",
+            "印度洋":   "#F0E442",
+            "北极海域": "#56B4E9",
+            "南极海域": "#CC79A7",
+            "赤道区域": "#E69F00"
+        };
+
+        // 图表尺寸
+        const margin  = { top: 40, right: 130, bottom: 20, left: 50 };
+        const width   = 1200;
+        const height  = 520;
+        const innerW  = width  - margin.left - margin.right;
+        const innerH  = height - margin.top  - margin.bottom;
+
+        // ---- 1. 创建 SVG ----
+        const svg = d3.select("#chart")
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("width", 1200)
+            .attr("height", 520);
+
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const tooltip = d3.select("#tooltip");
+
+        // ---- 2. 加载数据 & 渲染 ----
+        const DATA_URL = "../../data/组号-全球海洋大气耦合-实验2-选题扩展数据集.json";
+
+        d3.json(DATA_URL).then(rawData => {
+            // 采样：每条记录都保留，但这里取 1/5 以平衡细节与性能
+            const step = Math.max(1, Math.floor(rawData.length / 720));
+            const data = rawData.filter((_, i) => i % step === 0);
+
+            // 数据清洗：仅保留所有维度字段完整的记录
+            const clean = data.filter(d =>
+                DIMENSIONS.every(dim => d[dim.key] != null && isFinite(d[dim.key]))
+            );
+
+            // ---- 3. 为每个维度建立 y 轴比例尺 ----
+            const yScales = {};
+            DIMENSIONS.forEach(dim => {
+                const extent = d3.extent(clean, d => d[dim.key]);
+                // 上下各留 5% 余量
+                const pad = (extent[1] - extent[0]) * 0.05;
+                yScales[dim.key] = d3.scaleLinear()
+                    .domain([extent[0] - pad, extent[1] + pad])
+                    .range([innerH, 0]);
+            });
+
+            // ---- 4. x 轴位置（等间距分布） ----
+            const xScale = d3.scalePoint()
+                .domain(DIMENSIONS.map(d => d.key))
+                .range([0, innerW]);
+
+            // ---- 5. 绘制维度坐标轴 ----
+            const axisGroups = g.selectAll(".dim-axis")
+                .data(DIMENSIONS)
+                .join("g")
+                .attr("class", "dim-axis")
+                .attr("transform", d => `translate(${xScale(d.key)}, 0)`);
+
+            // 轴线
+            axisGroups.append("line")
+                .attr("y1", 0)
+                .attr("y2", innerH)
+                .attr("stroke", "#ccc")
+                .attr("stroke-width", 1);
+
+            // 背景可点击区域（为后续刷选预留交互接口）
+            axisGroups.append("rect")
+                .attr("class", "axis-bg")
+                .attr("x", -18)
+                .attr("y", 0)
+                .attr("width", 36)
+                .attr("height", innerH);
+
+            // 轴标签
+            axisGroups.append("text")
+                .attr("class", "axis-label")
+                .attr("y", -12)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "12px")
+                .attr("font-weight", "600")
+                .attr("fill", "#333")
+                .each(function(dim) {
+                    const lines = dim.label.split("\n");
+                    lines.forEach((line, i) => {
+                        d3.select(this).append("tspan")
+                            .attr("x", 0)
+                            .attr("dy", i === 0 ? 0 : 14)
+                            .text(line);
+                    });
+                });
+
+            // 刻度标签 (上/下两端)
+            axisGroups.each(function(dim) {
+                const scale = yScales[dim.key];
+                const gAxis = d3.select(this);
+                const ticks = scale.ticks(6);
+                gAxis.selectAll(".tick-label")
+                    .data(ticks)
+                    .join("text")
+                    .attr("class", "tick-label")
+                    .attr("y", d => scale(d))
+                    .attr("x", -22)
+                    .attr("text-anchor", "end")
+                    .attr("font-size", "9px")
+                    .attr("fill", "#666")
+                    .text(d => {
+                        // 格式化：数值太大或太小时用科学计数法
+                        if (Math.abs(d) >= 1000 || (d !== 0 && Math.abs(d) < 0.01)) {
+                            return d3.format(".2s")(d);
+                        }
+                        return d3.format(d % 1 === 0 ? "d" : ".1f")(d);
+                    });
+            });
+
+            // ---- 6. 折线路径生成器 ----
+            function linePath(d) {
+                return DIMENSIONS.map(dim => {
+                    const x = xScale(dim.key);
+                    const y = yScales[dim.key](d[dim.key]);
+                    return `${x},${y}`;
+                }).join(" ");
+            }
+
+            // ---- 7. 绘制平行坐标折线 ----
+            const lineGroup = g.append("g").attr("class", "lines");
+
+            const polylines = lineGroup.selectAll(".pc-line")
+                .data(clean)
+                .join("polyline")
+                .attr("class", "pc-line")
+                .attr("points", d => linePath(d))
+                .attr("stroke", d => REGION_COLORS[d.region] || "#999")
+                .on("mouseover", function(event, d) {
+                    // 高亮当前折线
+                    d3.select(this).classed("highlighted", true);
+                    // 调暗其他
+                    polylines.classed("dimmed", p => p !== d);
+                    // 显示 tooltip
+                    let html = `<strong>${d.region}</strong><br>`;
+                    html += `日期: ${d.time}<br>`;
+                    DIMENSIONS.forEach(dim => {
+                        const val = d[dim.key];
+                        const label = dim.label.replace("\n", " ");
+                        html += `${label}: ${typeof val === "number" ? val.toFixed(2) : val}<br>`;
+                    });
+                    tooltip.style("opacity", 1).html(html);
+                })
+                .on("mousemove", event => {
+                    tooltip
+                        .style("left", (event.clientX + 16) + "px")
+                        .style("top",  (event.clientY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    d3.select(this).classed("highlighted", false);
+                    polylines.classed("dimmed", false);
+                    tooltip.style("opacity", 0);
+                });
+
+            // ---- 8. 图例 ----
+            const regions = [...new Set(clean.map(d => d.region))].sort();
+            let activeRegion = null;
+
+            const legend = svg.append("g")
+                .attr("class", "legend")
+                .attr("transform", `translate(${width - margin.right + 16}, ${margin.top})`);
+
+            legend.selectAll(".legend-item")
+                .data(regions)
+                .join("g")
+                .attr("class", "legend-item")
+                .attr("transform", (_, i) => `translate(0, ${i * 22})`)
+                .on("click", function(event, region) {
+                    // 点击切换：同一个区域点击两次取消筛选
+                    if (activeRegion === region) {
+                        activeRegion = null;
+                        polylines.classed("dimmed", false).classed("highlighted", false);
+                        legend.selectAll(".legend-item").classed("inactive", false);
+                    } else {
+                        activeRegion = region;
+                        polylines.each(function(p) {
+                            const match = p.region === region;
+                            d3.select(this)
+                                .classed("highlighted", match)
+                                .classed("dimmed", !match);
+                        });
+                        legend.selectAll(".legend-item").classed("inactive", d => d !== region);
+                    }
+                })
+                .each(function(region) {
+                    const g = d3.select(this);
+                    g.append("rect")
+                        .attr("width", 12)
+                        .attr("height", 12)
+                        .attr("rx", 2)
+                        .attr("fill", REGION_COLORS[region]);
+                    g.append("text")
+                        .attr("x", 18)
+                        .attr("y", 11)
+                        .attr("font-size", "12px")
+                        .attr("fill", "#333")
+                        .text(region);
+                });
+
+            // 图例标题
+            legend.insert("text", ":first-child")
+                .attr("x", 0)
+                .attr("y", -10)
+                .attr("font-size", "12px")
+                .attr("font-weight", "600")
+                .attr("fill", "#333")
+                .text("海域（点击筛选）");
+
+            console.log(
+                `%c平行坐标图渲染完成 %c| %c${clean.length} %c条采样记录 %c| %c${regions.length} %c个海域`,
+                "color:#009E73", "color:#666", "font-weight:bold", "color:#666",
+                "color:#666", "font-weight:bold", "color:#666"
+            );
+        }).catch(err => {
+            d3.select("#chart").append("div")
+                .style("color", "red")
+                .style("padding", "40px")
+                .text("数据加载失败: " + err.message +
+                      "。请确认数据文件位于 ../../data/ 目录下。");
+            console.error("数据加载出错:", err);
+        });
+    </script>
+</body>
+</html>

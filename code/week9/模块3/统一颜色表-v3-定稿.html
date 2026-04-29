@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>实验2 · 统一颜色表 v3.0 定稿</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+      background: #f5f7fa; color: #2d3e50; line-height: 1.7;
+      padding: 40px 20px;
+    }
+    .container { max-width: 1040px; margin: 0 auto; }
+    .card {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px 36px; margin-bottom: 24px;
+    }
+    h1 { font-size: 24px; color: #1a2b4a; margin-bottom: 4px; }
+    h2 { font-size: 18px; color: #1a2b4a; margin: 28px 0 14px;
+         padding-bottom: 8px; border-bottom: 2px solid #e8ecf1; }
+    h3 { font-size: 15px; color: #1a2b4a; margin: 18px 0 8px; }
+    .meta { font-size: 13px; color: #7a8fa6; margin-bottom: 20px; }
+    table {
+      width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px;
+    }
+    th, td { border: 1px solid #e0e6ed; padding: 10px 14px; }
+    th { background: #f5f7fa; font-weight: 700; color: #1a2b4a; font-size: 12px; text-align: center; }
+    td { text-align: center; }
+    .highlight-box {
+      background: #e8f4fd; border-left: 4px solid #0072B2;
+      padding: 16px 20px; border-radius: 4px; margin: 16px 0; font-size: 14px;
+    }
+    .color-chip {
+      display: inline-block; width: 48px; height: 48px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12); vertical-align: middle;
+    }
+    .color-chip-sm {
+      display: inline-block; width: 24px; height: 24px; border-radius: 4px;
+      vertical-align: middle; margin-right: 6px;
+    }
+    .semantic-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 10px; font-weight: 700; margin: 2px;
+    }
+    .tag-ocean { background: #d1ecf1; color: #0c5460; }
+    .tag-atmo  { background: #fff3cd; color: #856404; }
+    .tag-polar  { background: #e2e3f1; color: #3a3d6b; }
+
+    .spec-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 16px; margin: 16px 0;
+    }
+    .spec-item {
+      background: #fafbfc; border: 1px solid #e0e6ed;
+      border-radius: 8px; padding: 16px;
+    }
+    .spec-item h4 {
+      font-size: 13px; color: #0072B2; margin-bottom: 8px;
+    }
+
+    .gradient-bar {
+      height: 8px; border-radius: 4px; margin: 6px 0;
+    }
+
+    pre {
+      background: #2d3748; color: #e2e8f0; padding: 16px 20px;
+      border-radius: 8px; font-size: 12px; line-height: 1.6;
+      overflow-x: auto; margin: 10px 0;
+    }
+    .version-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 14px;
+      background: #0072B2; color: #fff; font-size: 11px; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="card">
+    <h1>实验 2 · 专属统一颜色表 v3.0 <span class="version-badge">定稿</span></h1>
+    <p class="meta">
+      成员 C · 制定 &nbsp;|&nbsp; 全员讨论通过 &nbsp;|&nbsp; Week 9
+      &nbsp;|&nbsp; 融合 Okabe-Ito + ColorBrewer
+    </p>
+    <div class="highlight-box">
+      <strong>本文档是实验 2 所有图表的唯一颜色依据。</strong>
+      任何新增图表或修改现有图表时，必须使用本表中的色值。
+      本表已通过 Color Safe 色盲模拟工具验证。
+    </div>
+  </div>
+
+  <!-- ===== 1. 主色板 ===== -->
+  <div class="card">
+    <h2>1. 主色板 — 6 海域语义映射</h2>
+    <table>
+      <thead>
+        <tr><th></th><th>海域</th><th>色名</th><th>Hex</th><th>RGB</th><th>CMYK</th><th>语义</th><th>色盲验证</th></tr>
+      </thead>
+      <tbody id="main-palette"></tbody>
+    </table>
+
+    <h3>色盲模拟验证（全类型）</h3>
+    <table>
+      <thead>
+        <tr><th>色盲类型</th><th>太平洋/大西洋</th><th>大西洋/印度洋</th><th>印度洋/北极</th><th>北极/南极</th><th>南极/赤道</th><th>整体</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>正常视觉</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td class="pass">✓</td>
+        </tr>
+        <tr>
+          <td>Protanopia (红绿色盲)</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td style="color:#856404;">接近</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td class="warn">⚠</td>
+        </tr>
+        <tr>
+          <td>Deuteranopia (绿色盲)</td><td style="color:#1e8449;">可区分</td><td style="color:#856404;">接近</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td style="color:#856404;">接近</td><td class="warn">⚠</td>
+        </tr>
+        <tr>
+          <td>Tritanopia (蓝黄色盲)</td><td style="color:#856404;">接近</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td style="color:#1e8449;">可区分</td><td class="warn">⚠</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:#7a8fa6;margin-top:6px;">
+      ⚠ = 虽可区分但色差不大，建议在关键图表（如雷达图叠加）使用双重编码（线型/填充模式）。
+    </p>
+  </div>
+
+  <!-- ===== 2. 扩展色板 ===== -->
+  <div class="card">
+    <h2>2. 扩展色板 — 连续 & 发散色阶</h2>
+
+    <h3>2.1 温度序列（蓝→红发散，ColorBrewer RdBu）</h3>
+    <div class="gradient-bar" style="background:linear-gradient(90deg,#2166AC,#67A9CF,#D1E5F0,#F7F7F7,#FDDBC7,#EF8A62,#B2182B);"></div>
+    <table>
+      <thead><tr><th>等级</th><th>含义</th><th>SST 范围</th><th>Hex</th><th>RGB</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>极冷</td><td>&lt; 0°C</td><td style="background:#2166AC;color:#fff;">#2166AC</td><td>33,102,172</td></tr>
+        <tr><td>2</td><td>寒冷</td><td>0~10°C</td><td style="background:#67A9CF;color:#fff;">#67A9CF</td><td>103,169,207</td></tr>
+        <tr><td>3</td><td>凉爽</td><td>10~18°C</td><td style="background:#D1E5F0">#D1E5F0</td><td>209,229,240</td></tr>
+        <tr><td>4</td><td>适中</td><td>18~24°C</td><td style="background:#F7F7F7">#F7F7F7</td><td>247,247,247</td></tr>
+        <tr><td>5</td><td>温暖</td><td>24~28°C</td><td style="background:#FDDBC7">#FDDBC7</td><td>253,219,199</td></tr>
+        <tr><td>6</td><td>炎热</td><td>28~32°C</td><td style="background:#EF8A62;color:#fff;">#EF8A62</td><td>239,138,98</td></tr>
+        <tr><td>7</td><td>酷热</td><td>&gt; 32°C</td><td style="background:#B2182B;color:#fff;">#B2182B</td><td>178,24,43</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2.2 盐度序列（绿→紫，ColorBrewer BuPu 改编）</h3>
+    <div class="gradient-bar" style="background:linear-gradient(90deg,#EDF8FB,#B2E2E2,#66C2A4,#2CA25F,#006D2C);"></div>
+    <table>
+      <thead><tr><th>等级</th><th>盐度范围</th><th>Hex</th><th>RGB</th></tr></thead>
+      <tbody>
+        <tr><td>低盐</td><td>&lt;30 PSU</td><td style="background:#EDF8FB">#EDF8FB</td><td>237,248,251</td></tr>
+        <tr><td>中低</td><td>30~33</td><td style="background:#B2E2E2">#B2E2E2</td><td>178,226,226</td></tr>
+        <tr><td>中等</td><td>33~35</td><td style="background:#66C2A4;color:#fff;">#66C2A4</td><td>102,194,164</td></tr>
+        <tr><td>中高</td><td>35~37</td><td style="background:#2CA25F;color:#fff;">#2CA25F</td><td>44,162,95</td></tr>
+        <tr><td>高盐</td><td>&gt;37 PSU</td><td style="background:#006D2C;color:#fff;">#006D2C</td><td>0,109,44</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2.3 语义色</h3>
+    <table>
+      <thead><tr><th>用途</th><th>颜色</th><th>Hex</th><th>RGB</th></tr></thead>
+      <tbody>
+        <tr><td>背景</td><td style="background:#ffffff;width:60px;"></td><td>#FFFFFF</td><td>255,255,255</td></tr>
+        <tr><td>卡片背景</td><td style="background:#ffffff;"></td><td>#FFFFFF</td><td>255,255,255</td></tr>
+        <tr><td>页面底色</td><td style="background:#f0f4f8;"></td><td>#F0F4F8</td><td>240,244,248</td></tr>
+        <tr><td>深色标题</td><td style="background:#1a2b4a;color:#fff;">#1A2B4A</td><td>#1A2B4A</td><td>26,43,74</td></tr>
+        <tr><td>正文</td><td style="background:#2d3e50;color:#fff;">#2D3E50</td><td>#2D3E50</td><td>45,62,80</td></tr>
+        <tr><td>辅助/脚注</td><td style="background:#7a8fa6;color:#fff;">#7A8FA6</td><td>#7A8FA6</td><td>122,143,166</td></tr>
+        <tr><td>网格线</td><td style="background:#e0e0e0;">#E0E0E0</td><td>#E0E0E0</td><td>224,224,224</td></tr>
+        <tr><td>轴颜色</td><td style="background:#666666;color:#fff;">#666666</td><td>#666666</td><td>102,102,102</td></tr>
+        <tr><td>Tooltip 暗底</td><td style="background:rgba(20,40,70,0.92);color:#fff;">rgba(20,40,70,0.92)</td><td>≈ #142846</td><td>20,40,70</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 3. 图表颜色使用矩阵 ===== -->
+  <div class="card">
+    <h2>3. 图表-颜色使用矩阵</h2>
+    <table>
+      <thead>
+        <tr><th>图表</th><th>主色用途</th><th>使用颜色</th><th>扩展色用途</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>饼图</td><td>6 海域扇区</td><td>主色板全部 6 色</td><td>中心文字用 #1a2b4a</td>
+        </tr>
+        <tr>
+          <td>散点图</td><td>圆点按海域着色</td><td>主色板全部 6 色</td><td>大小编码用额外变量</td>
+        </tr>
+        <tr>
+          <td>气泡图</td><td>气泡按海域着色</td><td>主色板全部 6 色</td><td>尺寸编码用第三变量</td>
+        </tr>
+        <tr>
+          <td>雷达图</td><td>多边形海域线</td><td>主色板全部 6 色</td><td>网格用 #e0e0e0</td>
+        </tr>
+        <tr>
+          <td>桑基图</td><td>源海域→流带</td><td>主色板全部 6 色</td><td>温度节点用 #5a6d80</td>
+        </tr>
+        <tr>
+          <td>平行坐标图</td><td>折线按海域</td><td>主色板全部 6 色</td><td>刷选范围用 #0072B2 半透明</td>
+        </tr>
+        <tr>
+          <td>前端原型</td><td>导航/卡片边框</td><td>#1a2b4a / #e8ecf1</td><td>筛选区背景 #f5f7fa</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 4. 视觉规范修订摘要 ===== -->
+  <div class="card">
+    <h2>4. 视觉规范 v3.0 修订摘要</h2>
+    <div class="spec-grid">
+      <div class="spec-item">
+        <h4>修订 1：黄色强制描边</h4>
+        <p style="font-size:12px;">所有使用印度洋黄色 #F0E442 的元素，
+        统一附加 1.5px #8B8000 描边。此规则写入党纪。</p>
+      </div>
+      <div class="spec-item">
+        <h4>修订 2：Tooltip 统一</h4>
+        <p style="font-size:12px;">全部图表的 tooltip 使用同一套 CSS：
+        rgba(20,40,70,0.92) 底 + #fff 13px 字 + 8px 圆角。</p>
+      </div>
+      <div class="spec-item">
+        <h4>修订 3：动画曲线统一</h4>
+        <p style="font-size:12px;">所有交互过渡统一使用
+        transition: 0.2s ease（悬浮高亮/调暗/显隐）。</p>
+      </div>
+      <div class="spec-item">
+        <h4>修订 4：卡片视觉统一</h4>
+        <p style="font-size:12px;">所有图表页面统一白底卡片 + 12px 圆角
+        + 0.06opacity 阴影 + 32px padding。</p>
+      </div>
+      <div class="spec-item">
+        <h4>修订 5：印度洋双重编码</h4>
+        <p style="font-size:12px;">雷达图和散点图中印度洋 (#F0E442)
+        数据点附加交叉影线或虚线，作为形状双重编码。</p>
+      </div>
+      <div class="spec-item">
+        <h4>修订 6：对比度底线</h4>
+        <p style="font-size:12px;">新增硬性规则：图表中任何"文字/数据标记"
+        与背景对比度不得低于 3.0:1。</p>
+      </div>
+    </div>
+
+    <h3>完整视觉规范集成</h3>
+    <pre>
+<span style="color:#a0aec0;">// CSS 引入（所有图表 HTML 文件首行样式区）</span>
+<span style="color:#fbd38d;">@import</span> <span style="color:#68d391;">url("../模块3/type.css")</span>;
+
+<span style="color:#a0aec0;">// JS 颜色获取（所有图表 JS 区）</span>
+<span style="color:#fbd38d;">const</span> COLOR = {
+  <span style="color:#68d391;">"太平洋"</span>:   <span style="color:#68d391;">"#0072B2"</span>,  <span style="color:#a0aec0;">// Blue</span>
+  <span style="color:#68d391;">"大西洋"</span>:   <span style="color:#68d391;">"#009E73"</span>,  <span style="color:#a0aec0;">// Green</span>
+  <span style="color:#68d391;">"印度洋"</span>:   <span style="color:#68d391;">"#F0E442"</span>,  <span style="color:#a0aec0;">// Yellow — 强制+描边</span>
+  <span style="color:#68d391;">"北极海域"</span>: <span style="color:#68d391;">"#56B4E9"</span>,  <span style="color:#a0aec0;">// Sky Blue</span>
+  <span style="color:#68d391;">"南极海域"</span>: <span style="color:#68d391;">"#CC79A7"</span>,  <span style="color:#a0aec0;">// Purple-Red</span>
+  <span style="color:#68d391;">"赤道区域"</span>: <span style="color:#68d391;">"#E69F00"</span>,  <span style="color:#a0aec0;">// Orange</span>
+};
+    </pre>
+  </div>
+
+</div>
+
+<script>
+const palette = [
+  { region:"太平洋",   name:"蓝 Blue",        hex:"#0072B2", rgb:"0,114,178",   cmyk:"100,36,0,30",
+    semantic:"最大开阔海域", tag:"tag-ocean", cb:"✓" },
+  { region:"大西洋",   name:"绿 Green",       hex:"#009E73", rgb:"0,158,115",   cmyk:"100,0,54,38",
+    semantic:"富饶海域",   tag:"tag-ocean", cb:"✓" },
+  { region:"印度洋",   name:"黄 Yellow",      hex:"#F0E442", rgb:"240,228,66",  cmyk:"0,5,73,6",
+    semantic:"热带暖水海域 <br>⚠ 需描边", tag:"tag-atmo",  cb:"⚠" },
+  { region:"北极海域", name:"天蓝 Sky Blue",  hex:"#56B4E9", rgb:"86,180,233",  cmyk:"63,23,0,9",
+    semantic:"寒冷极地",   tag:"tag-polar", cb:"✓" },
+  { region:"南极海域", name:"紫红 Purple-Red",hex:"#CC79A7", rgb:"204,121,167", cmyk:"0,41,18,20",
+    semantic:"极地冷水",   tag:"tag-polar", cb:"✓" },
+  { region:"赤道区域", name:"橙 Orange",      hex:"#E69F00", rgb:"230,159,0",   cmyk:"0,31,100,10",
+    semantic:"热带高能海域",tag:"tag-atmo",  cb:"✓" },
+];
+
+const tbody = document.getElementById("main-palette");
+palette.forEach((d, i) => {
+  // Luminance for text color
+  const r = parseInt(d.hex.slice(1,3),16);
+  const g = parseInt(d.hex.slice(3,5),16);
+  const b = parseInt(d.hex.slice(5,7),16);
+  const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+  const textColor = lum > 0.55 ? "#333" : "#fff";
+
+  tbody.innerHTML += `<tr>
+    <td><span class="color-chip" style="background:${d.hex};"></span></td>
+    <td><strong>${d.region}</strong><br><span class="semantic-tag ${d.tag}">${d.tag === 'tag-ocean' ? '海洋' : d.tag === 'tag-atmo' ? '大气/热带' : '极地'}</span></td>
+    <td>${d.name}</td>
+    <td><code>${d.hex}</code></td>
+    <td><code>rgb(${d.rgb})</code></td>
+    <td><code>${d.cmyk}</code></td>
+    <td style="text-align:left;font-size:12px;">${d.semantic}</td>
+    <td>${d.cb}</td>
+  </tr>`;
+});
+
+console.log("%c统一颜色表 v3.0 定稿%c | 成员 C · Week 9",
+  "color:#0072B2;font-weight:bold;font-size:14px;", "color:#666;");
+</script>
+</body>
+</html>
