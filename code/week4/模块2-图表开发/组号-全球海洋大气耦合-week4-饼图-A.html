@@ -19,8 +19,8 @@
       background: #fff;
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.10);
-      padding: 32px 40px;
-      width: 780px;
+      padding: 30px 50px;
+      width: 700px;
     }
 
     h2 {
@@ -38,7 +38,7 @@
     .chart-area {
       display: flex;
       align-items: center;
-      gap: 32px;
+      gap: 50px;
     }
 
     #pie-svg { flex-shrink: 0; }
@@ -105,7 +105,7 @@ const COLOR = {
   "赤道区域": "#EE3377",
 };
 
-const W = 320, H = 320, R = 130, R_INNER = 58;
+const W = 340, H = 340, R = 130, R_INNER = 58;
 
 const svg = d3.select("#pie-svg")
   .attr("width", W)
